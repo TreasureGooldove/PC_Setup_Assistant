@@ -42,6 +42,9 @@ pnpm --dir apps/web dev
 - 装机检查：CPU 插槽、内存代际、显卡长度、散热器空间、冷排尺寸和电源余量。
 - 方案操作：锁定配件、替换配件、刷新参考报价、实时查看生成进度。
 - 清单导出：生成包含方案概览、配件明细和兼容性检查的 `.xlsx` 文件。
+- 硬件天梯：按 CPU/显卡分类查看 S/A/B 档、性能参考分、显存、功耗和参考价。
+- 游戏配置：按游戏名称或 Steam App ID 查询最低配置与推荐配置；默认使用本地 Fixture，Steam Store 适配器可选开启。
+- 主题切换：默认玻璃拟态，可在右上角设置中切换为新拟物派。
 
 ## 从需求到清单
 
@@ -59,6 +62,8 @@ pnpm --dir apps/web dev
 LLM_API_KEY=
 LLM_API_BASE=https://example.invalid/compatible-mode/v1
 LLM_MODEL=qwen3.8-max
+STEAM_API_ENABLED=false
+STEAM_API_BASE=https://store.steampowered.com/api
 ```
 
 不要把 `.env` 或任何密钥提交到 Git。
@@ -106,8 +111,8 @@ uv run alembic upgrade head
 
 ## 当前边界
 
-已有：本地演示、需求对话、三套方案、兼容性规则、持久化 Worker、SSE、导出和 CI。
+已有：本地演示、需求对话、三套方案、兼容性规则、持久化 Worker、SSE、生成进度条、导出、硬件天梯、游戏最低/推荐配置查询和 CI。
 
-预留：京东联盟/拼多多官方接口、用户提供的视频字幕或摘要证据、更多硬件规格和多用户存储。
+预留：京东联盟/拼多多官方接口、Steam Store 补全搜索与字段标准化、用户提供的视频字幕或摘要证据、更多硬件规格和多用户存储。
 
 暂不提供：自动购买、验证码绕过、不稳定网页抓取、隐蔽采集第三方内容。
