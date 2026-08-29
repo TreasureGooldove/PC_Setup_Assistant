@@ -6,6 +6,7 @@ from uuid import uuid4
 from app.domain import (
     BuildItem,
     BuildPlan,
+    CompatibilityIssue,
     NeedProfile,
     Part,
     PartCategory,
@@ -106,6 +107,19 @@ def generate_plans(profile: NeedProfile) -> list[BuildPlan]:
         ]
         issues = check_compatibility(items)
         total = round(sum(item.part.price for item in items), 2)
+        if total > profile.budget:
+            issues.append(
+                CompatibilityIssue(
+                    code="BUDGET_OVER",
+                    severity="warning",
+                    title="方案高于当前预算",
+                    detail=(
+                        f"当前参考价约 {total:.0f} 元，超出预算 "
+                        f"{total - profile.budget:.0f} 元，可替换显卡或存储。"
+                    ),
+                    related_slots=["gpu", "storage"],
+                )
+            )
         power = sum(part.power_w for part in selected) + 80
         score = min(
             99,

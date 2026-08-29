@@ -4,7 +4,7 @@ type: team-context
 status: in_progress
 git_branch: feat/1-pc-builder-mvp
 base_branch: main
-pr_url:
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 ---
 
 # Team Context
@@ -31,4 +31,4 @@ pr_url:
 
 | 状态 | 问题 | 证据 |
 |---|---|---|
-| open | GitHub CLI 初次认证需要设备授权 | 终端授权流程 |
+| resolved | GitHub CLI 初次认证需要设备授权 | 已完成官方设备授权并创建 PR |

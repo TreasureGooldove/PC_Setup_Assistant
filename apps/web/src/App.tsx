@@ -66,9 +66,9 @@ function demoPlans(profile: NeedProfile): BuildPlan[] {
   return styles.map((style, index) => {
     const items: BuildItem[] = Object.values(DEMO_PARTS).map((part) => ({ slot: part.category, part, locked: false, reason: `${part.category === "gpu" ? profile.resolution : "预算与兼容性"} 取向。` }));
     const multiplier = [0.78, 1, 1.12][index];
-    const total = Math.round(items.reduce((sum, item) => sum + item.part.price, 0) * multiplier);
     if (index === 0) items.find((item) => item.slot === "gpu")!.part = { ...DEMO_PARTS.gpu, name: "Radeon RX 7600 8G", brand: "AMD", price: 2099, id: "demo-gpu-value", power_w: 165 };
     if (index === 2) items.find((item) => item.slot === "memory")!.part = { ...DEMO_PARTS.memory, name: "DDR5 6000 64GB套装", price: 1199, id: "demo-memory-performance" };
+    const total = Math.round(items.reduce((sum, item) => sum + item.part.price, 0) * multiplier);
     return { id: `demo-${style}`, style, title: titles[index], summary: summaries[index], budget: profile.budget, total_price: total, estimated_power_w: 365 + index * 70, performance_score: 78 + index * 10, items, compatibility: [], created_at: now };
   });
 }

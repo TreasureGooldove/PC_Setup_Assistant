@@ -1,0 +1,15 @@
+
+> pc-setup-assistant-web@0.1.0 test D:\DESKTOP\DEV\PC_Setup_Assistant\apps\web
+> vitest run
+
+
+ RUN  v2.1.9 D:/DESKTOP/DEV/PC_Setup_Assistant/apps/web
+
+ ✓ src/App.test.tsx (2 tests) 881ms
+   ✓ 智能装机搭子工作台 > updates the profile from a natural-language message 758ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  23:56:22
+   Duration  2.66s (transform 77ms, setup 12ms, collect 333ms, tests 881ms, environment 707ms, prepare 176ms)
+

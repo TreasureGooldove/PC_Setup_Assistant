@@ -29,7 +29,7 @@
 - `git_branch`: `feat/1-pc-builder-mvp`
 - `base_branch`: `main`
 - `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/1
-- `pr_url`: 待创建
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 
 ## 安全边界
 

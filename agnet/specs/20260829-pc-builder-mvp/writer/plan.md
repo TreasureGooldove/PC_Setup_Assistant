@@ -5,7 +5,7 @@ status: approved
 created: 2026-08-29
 git_branch: feat/1-pc-builder-mvp
 base_branch: main
-pr_url:
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 ---
 
 # 实现计划
