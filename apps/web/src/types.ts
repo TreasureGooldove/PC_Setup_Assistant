@@ -2,6 +2,8 @@ export type BrandPreference = "any" | "amd" | "intel" | "nvidia";
 export type CoolingPreference = "any" | "air" | "water";
 export type PlanStyle = "value" | "balanced" | "performance";
 export type PartCategory = "cpu" | "motherboard" | "gpu" | "memory" | "storage" | "psu" | "cooling" | "case";
+export type LadderCategory = "cpu" | "gpu";
+export type AppView = "builder" | "ladder" | "games";
 
 export interface NeedProfile {
   budget: number;
@@ -73,4 +75,44 @@ export interface Job {
   message: string;
   result?: { plans?: BuildPlan[]; path?: string; file_name?: string; plan?: BuildPlan } | null;
   error?: string | null;
+}
+
+export interface HardwareLadderEntry {
+  id: string;
+  category: LadderCategory;
+  tier: string;
+  rank: number;
+  name: string;
+  brand: string;
+  score: number;
+  vram_gb?: number | null;
+  power_w?: number | null;
+  reference_price?: number | null;
+  source: string;
+  note: string;
+}
+
+export interface SystemRequirement {
+  operating_system: string;
+  processor: string;
+  memory_gb?: number | null;
+  graphics: string;
+  directx?: string | null;
+  storage_gb?: number | null;
+  additional_notes?: string | null;
+}
+
+export interface GameSearchResult {
+  app_id: string;
+  name: string;
+  source: string;
+}
+
+export interface GameRequirement {
+  app_id: string;
+  name: string;
+  source: string;
+  minimum: SystemRequirement;
+  recommended: SystemRequirement;
+  notes: string;
 }

@@ -26,4 +26,21 @@ describe("智能装机搭子工作台", () => {
     fireEvent.click(screen.getByRole("button", { name: /生成我的方案/ }));
     await waitFor(() => expect(screen.getByText("三套方案已生成（本地演示）")).toBeTruthy(), { timeout: 2000 });
   });
+
+  it("opens the ladder, game requirements, and theme settings views", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "硬件天梯" }));
+    expect(screen.getAllByText("硬件天梯").length).toBeGreaterThan(0);
+    expect(screen.getByText("GeForce RTX 4070 SUPER")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "游戏配置" }));
+    expect(screen.getByText("游戏能不能带得动？")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Counter-Strike 2/ }));
+    await waitFor(() => expect(screen.getByText("最低配置")).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "设置" }));
+    fireEvent.click(screen.getByRole("button", { name: /新拟物派/ }));
+    expect(document.querySelector('[data-theme="neumorphism"]')).toBeTruthy();
+  });
 });

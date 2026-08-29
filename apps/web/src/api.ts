@@ -1,4 +1,4 @@
-import type { BuildPlan, ConversationResponse, Job, NeedProfile, Part, PartCategory } from "./types";
+import type { BuildPlan, ConversationResponse, GameRequirement, GameSearchResult, HardwareLadderEntry, Job, NeedProfile, Part, PartCategory, LadderCategory } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -29,6 +29,9 @@ export const api = {
   getJob: (id: string) => request<Job>(`/api/jobs/${id}`),
   getPlans: (conversationId: string) => request<{ plans: BuildPlan[] }>(`/api/plans?conversation_id=${encodeURIComponent(conversationId)}`),
   getCatalog: (category: PartCategory) => request<{ items: Part[] }>(`/api/catalog/${category}`),
+  getLadder: (category: LadderCategory) => request<{ items: HardwareLadderEntry[] }>(`/api/ladder?category=${category}`),
+  searchGames: (query: string) => request<{ items: GameSearchResult[] }>(`/api/games/search?query=${encodeURIComponent(query)}`),
+  getGameRequirements: (appId: string) => request<GameRequirement>(`/api/games/${encodeURIComponent(appId)}/requirements`),
   replaceItem: (planId: string, slot: PartCategory, partId: string, locked: boolean) => request<BuildPlan>(`/api/plans/${planId}/items/${slot}`, { method: "PATCH", body: JSON.stringify({ part_id: partId, locked }) }),
   exportPlan: (planId: string) => request<Job>(`/api/plans/${planId}/exports`, { method: "POST", headers: { "Idempotency-Key": `export:${planId}:${Date.now()}` } }),
 };
