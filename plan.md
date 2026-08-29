@@ -1,6 +1,6 @@
 # 智能装机搭子 MVP
 
-状态：已完成（PR #2 已于 2026-08-29 squash 合并到 `main`）
+状态：MVP 已完成（PR #2 已于 2026-08-29 squash 合并到 `main`）；游戏配置、硬件天梯、主题切换与生成进度条 follow-up 见 Issue #4。
 
 ## 目标
 
@@ -14,7 +14,7 @@
 - 数据：Fixture 默认启用，京东/拼多多官方适配器预留，禁止验证码绕过和不稳定网页抓取。
 - 模型：OpenAI 兼容客户端，环境变量配置 `qwen3.8-max`；没有本地凭证时使用 Mock。
 - 实时：SSE 推送任务状态。
-- 设计：Minimalism & Swiss Style，Teal 主色、橙色行动色、响应式布局、键盘可用、`prefers-reduced-motion` 支持。
+- 设计：默认玻璃拟态、可切换新拟物派，响应式布局、键盘可用、`prefers-reduced-motion` 支持；页面信息层级参考公开装机问答产品，不复制其品牌和素材。
 
 ## 交付范围
 

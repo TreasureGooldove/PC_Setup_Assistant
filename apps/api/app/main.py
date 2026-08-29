@@ -16,6 +16,7 @@ from app.database import init_db
 from app.domain import (
     ConversationCreate,
     ConversationResponse,
+    LadderCategory,
     MessageCreate,
     PartCategory,
     ProfileUpdate,
@@ -29,6 +30,8 @@ from app.features.conversations.service import (
     get_conversation,
     update_profile,
 )
+from app.features.games.service import get_game_requirements, search_games
+from app.features.ladder.service import ladder_entries
 from app.queue import JobQueue
 
 
@@ -159,6 +162,31 @@ async def catalog_route(category: PartCategory):
             part.model_dump(mode="json") for part in fixture_parts() if part.category == category
         ]
     }
+
+
+@app.get("/api/ladder")
+async def ladder_route(category: LadderCategory | None = None):
+    return {
+        "category": category.value if category else "all",
+        "items": [entry.model_dump(mode="json") for entry in ladder_entries(category)],
+        "source": "Fixture性能参考",
+    }
+
+
+@app.get("/api/games/search")
+async def game_search_route(query: str = ""):
+    return {
+        "items": [game.model_dump(mode="json") for game in await search_games(query)],
+        "source": "Fixture游戏数据",
+    }
+
+
+@app.get("/api/games/{app_id}/requirements")
+async def game_requirements_route(app_id: str):
+    result = await get_game_requirements(app_id)
+    if result is None:
+        raise NotFoundError("游戏配置", app_id)
+    return result.model_dump(mode="json")
 
 
 @app.get("/api/jobs/{job_id}")
