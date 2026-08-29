@@ -1,0 +1,13 @@
+
+> pc-setup-assistant-web@0.1.0 build D:\DESKTOP\DEV\PC_Setup_Assistant\apps\web
+> tsc -b && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 1630 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.44 kB │ gzip:  0.31 kB
+dist/assets/index-C6SXkCWf.css   11.99 kB │ gzip:  3.30 kB
+dist/assets/index-D8BAm6jt.js   245.90 kB │ gzip: 77.77 kB
+✓ built in 1.87s

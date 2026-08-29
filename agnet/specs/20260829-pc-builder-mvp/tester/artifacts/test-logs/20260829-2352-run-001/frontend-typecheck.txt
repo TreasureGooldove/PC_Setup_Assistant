@@ -1,0 +1,4 @@
+
+> pc-setup-assistant-web@0.1.0 typecheck D:\DESKTOP\DEV\PC_Setup_Assistant\apps\web
+> tsc --noEmit
+
