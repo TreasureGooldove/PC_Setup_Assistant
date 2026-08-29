@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     llm_api_base: str = "https://example.invalid/compatible-mode/v1"
     llm_model: str = "qwen3.8-max"
+    steam_api_enabled: bool = False
+    steam_api_base: str = "https://store.steampowered.com/api"
     cors_origins: str = "http://localhost:5173"
     job_lease_seconds: int = Field(default=60, ge=10, le=3600)
     job_poll_seconds: float = Field(default=0.5, ge=0.1, le=30)

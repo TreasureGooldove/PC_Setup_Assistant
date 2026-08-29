@@ -22,3 +22,19 @@ def test_http_conversation_generation_flow():
         finished = client.get(f"/api/jobs/{job['id']}").json()
         assert finished["status"] == "completed"
         assert len(finished["result"]["plans"]) == 3
+
+
+def test_ladder_and_game_requirement_routes():
+    with TestClient(app) as client:
+        ladder = client.get("/api/ladder", params={"category": "gpu"})
+        assert ladder.status_code == 200
+        assert ladder.json()["items"][0]["category"] == "gpu"
+
+        games = client.get("/api/games/search", params={"query": "730"})
+        assert games.status_code == 200
+        assert games.json()["items"][0]["name"] == "Counter-Strike 2"
+
+        requirements = client.get("/api/games/730/requirements")
+        assert requirements.status_code == 200
+        assert requirements.json()["minimum"]["memory_gb"] == 8
+        assert requirements.json()["recommended"]["graphics"]

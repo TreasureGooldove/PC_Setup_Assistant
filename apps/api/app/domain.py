@@ -37,6 +37,11 @@ class PartCategory(StrEnum):
     CASE = "case"
 
 
+class LadderCategory(StrEnum):
+    CPU = "cpu"
+    GPU = "gpu"
+
+
 class NeedProfile(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
@@ -96,6 +101,46 @@ class Evidence(BaseModel):
     url: str | None = None
     summary: str
     confidence: str = "low"
+
+
+class SystemRequirement(BaseModel):
+    operating_system: str = "未提供"
+    processor: str = "未提供"
+    memory_gb: int | None = Field(default=None, ge=0)
+    graphics: str = "未提供"
+    directx: str | None = None
+    storage_gb: int | None = Field(default=None, ge=0)
+    additional_notes: str | None = None
+
+
+class GameSearchResult(BaseModel):
+    app_id: str
+    name: str
+    source: str = "Fixture游戏数据"
+
+
+class GameRequirement(BaseModel):
+    app_id: str
+    name: str
+    source: str = "Fixture游戏数据"
+    minimum: SystemRequirement
+    recommended: SystemRequirement
+    notes: str = ""
+
+
+class HardwareLadderEntry(BaseModel):
+    id: str
+    category: LadderCategory
+    tier: str
+    rank: int = Field(ge=1)
+    name: str
+    brand: str
+    score: int = Field(ge=0, le=100)
+    vram_gb: int | None = Field(default=None, ge=0)
+    power_w: int | None = Field(default=None, ge=0)
+    reference_price: float | None = Field(default=None, ge=0)
+    source: str = "Fixture性能参考"
+    note: str = ""
 
 
 class BuildItem(BaseModel):
