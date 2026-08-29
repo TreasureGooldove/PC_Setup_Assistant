@@ -12,6 +12,9 @@ node_modules/
 dist/
 coverage/
 .vite/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # Local state and secrets
 .env
