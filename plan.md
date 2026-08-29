@@ -1,5 +1,7 @@
 # 智能装机搭子 MVP
 
+状态：已完成（PR #2 已于 2026-08-29 squash 合并到 `main`）
+
 ## 目标
 
 构建一个面向普通用户的装机方案助手：通过对话收集预算与使用需求，生成多套硬件配置，执行兼容性校验，并支持实时进度与 Excel 清单导出。
@@ -30,6 +32,7 @@
 - `base_branch`: `main`
 - `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/1
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
+- `merge_commit`: `51fcb630c6412f12ed41b266a966ad07cb52e9d6`
 
 ## 安全边界
 
