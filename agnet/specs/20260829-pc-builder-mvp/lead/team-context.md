@@ -1,7 +1,7 @@
 ---
 title: 智能装机搭子 MVP Team Context
 type: team-context
-status: in_progress
+status: completed
 git_branch: feat/1-pc-builder-mvp
 base_branch: main
 pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
@@ -13,7 +13,7 @@ pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 
 - Spec：`20260829-pc-builder-mvp`
 - Issue：https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/1
-- 当前阶段：实现与验证
+- 当前阶段：已完成并合并
 
 ## Task Progress
 
@@ -22,10 +22,10 @@ pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 | spec-init | done | `AGENTS.md`、`agnet/`、`plan.md` |
 | spec-explorer | done | `explorer/exploration-report.md` |
 | spec-writer | done | `writer/plan.md` |
-| spec-executor | in_progress | `executor/summary.md` |
-| spec-tester | pending | `tester/test-report.md` |
-| spec-reviewer | pending | `reviewer/review.md` |
-| spec-ender | pending | `ender/end-report.md` |
+| spec-executor | done | `executor/summary.md` |
+| spec-tester | done | `tester/test-report.md` |
+| spec-reviewer | done | `reviewer/review.md` |
+| spec-ender | done | `ender/end-report.md` |
 
 ## Problem Resolution Log
 
