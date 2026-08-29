@@ -1,6 +1,6 @@
 # 智能装机搭子 MVP
 
-状态：MVP 已完成（PR #2 已于 2026-08-29 squash 合并到 `main`）；游戏配置、硬件天梯、主题切换与生成进度条 follow-up 见 Issue #4。
+状态：已完成（MVP 的 PR #2 与本次 follow-up 的 PR #5 均已 squash 合并到 `main`）。
 
 ## 目标
 
@@ -33,6 +33,13 @@
 - `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/1
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/2
 - `merge_commit`: `51fcb630c6412f12ed41b266a966ad07cb52e9d6`
+
+## Follow-up Git 元数据
+
+- `git_branch`: `feat/4-steam-ladder-ui`
+- `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/4
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/5
+- `merge_commit`: `8643a7c`
 
 ## 安全边界
 
