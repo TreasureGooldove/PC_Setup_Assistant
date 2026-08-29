@@ -1,0 +1,12 @@
+{
+  "name": "pc-setup-assistant",
+  "private": true,
+  "scripts": {
+    "web:dev": "pnpm --dir apps/web dev",
+    "web:build": "pnpm --dir apps/web build",
+    "web:test": "pnpm --dir apps/web test",
+    "web:lint": "pnpm --dir apps/web lint",
+    "web:typecheck": "pnpm --dir apps/web typecheck"
+  },
+  "packageManager": "pnpm@10.15.0"
+}

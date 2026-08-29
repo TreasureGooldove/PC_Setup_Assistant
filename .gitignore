@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest-tmp/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# Node
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Local state and secrets
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+*.log
+data/
+exports/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated test artifacts
+playwright-report/
+test-results/
