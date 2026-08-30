@@ -8,6 +8,22 @@
 
 ## 快速开始
 
+### Windows 一键启动
+
+在仓库根目录双击 `install.bat` 完成依赖安装，再双击 `start.bat`。启动脚本会分别打开 API、Worker 和 Vite，并打开 `http://localhost:5173/`；关闭它打开的三个终端窗口即可停止服务。
+
+如果系统提示找不到 `uv` 或 `pnpm`，请先安装对应工具，再重新运行脚本。脚本不会创建或读取项目外的密钥文件。
+
+### Linux 一键安装与启动
+
+```sh
+chmod +x install.sh start.sh
+./install.sh
+./start.sh
+```
+
+`start.sh` 会在依赖目录不存在时自动调用安装脚本，按 `Ctrl+C` 会同时停止 API、Worker 和前端开发服务器；如果系统安装了 `xdg-open`，还会自动打开本地预览页。
+
 ### 后端
 
 ```powershell
