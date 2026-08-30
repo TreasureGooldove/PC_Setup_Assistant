@@ -64,7 +64,7 @@
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/12
 - `scope`: 天梯筛选与可点击选配、配件规格/排行/点评/来源详情、手动替换后的兼容性复核、War Thunder 查询容错，以及演示方案导出保护。
 - `data_boundary`: 价格继续使用 Fixture；规格页链接用于人工核对，Steam 系统需求使用可复现快照，联网 Provider 可选启用。
-- `status`: 实现和本地回归已完成，PR #12 已创建，等待 CI 与 squash 合并。
+- `status`: 实现、本地回归和 GitHub CI 均已通过；本条记录随 PR #12 squash 合并后视为完成。
 
 ## 安全边界
 
