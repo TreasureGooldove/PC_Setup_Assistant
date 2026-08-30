@@ -20,6 +20,13 @@ class CoolingPreference(StrEnum):
     WATER = "water"
 
 
+class FormFactorPreference(StrEnum):
+    ANY = "any"
+    ATX = "ATX"
+    MATX = "mATX"
+    ITX = "Mini-ITX"
+
+
 class PlanStyle(StrEnum):
     VALUE = "value"
     BALANCED = "balanced"
@@ -52,6 +59,7 @@ class NeedProfile(BaseModel):
     cpu_brand: BrandPreference = BrandPreference.ANY
     gpu_brand: BrandPreference = BrandPreference.ANY
     cooling: CoolingPreference = CoolingPreference.ANY
+    form_factor: FormFactorPreference = FormFactorPreference.ANY
     aesthetics: str = Field(default="简洁", max_length=100)
     noise: str = Field(default="均衡", max_length=100)
     upgrade: str = Field(default="保留升级空间", max_length=200)
@@ -83,6 +91,14 @@ class Offer(BaseModel):
     price: float
     source: str
     captured_at: datetime
+    platform: str = "fixture"
+    sku: str | None = None
+    list_price: float | None = Field(default=None, ge=0)
+    discount_price: float | None = Field(default=None, ge=0)
+    landed_price: float | None = Field(default=None, ge=0)
+    seller: str | None = None
+    region: str | None = None
+    coupon_note: str | None = None
     status: str = "参考价"
     url: str | None = None
 
