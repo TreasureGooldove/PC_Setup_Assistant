@@ -1,6 +1,6 @@
 # 智能装机搭子 MVP
 
-状态：已完成（MVP 的 PR #2 与本次 follow-up 的 PR #5 均已 squash 合并到 `main`）。
+状态：已完成（MVP 的 PR #2、follow-up 的 PR #5，以及检查/报价增强的 PR #7 均已 squash 合并到 `main`）。
 
 ## 目标
 
@@ -46,6 +46,9 @@
 - `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/6
 - `branch`: `feat/6-builder-checks-price-sources`
 - `scope`: 企业简洁风默认主题、ATX/mATX/Mini-ITX 机身偏好、逐项兼容性检查和多平台报价字段标准化。
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/7
+- `merge_commit`: `858ce10`
+- `status`: 已完成；CI、后端回归和前端回归均通过。
 
 ## 安全边界
 
