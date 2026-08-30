@@ -7,6 +7,7 @@ from app.domain import (
     BuildItem,
     BuildPlan,
     CompatibilityIssue,
+    FormFactorPreference,
     NeedProfile,
     Part,
     PartCategory,
@@ -52,7 +53,10 @@ def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
     parts = fixture_parts()
     cpu = _choose_cpu(parts, profile, style)
     gpu = _choose_gpu(parts, profile, style)
-    if cpu.specs["socket"] == "AM5":
+    requested_form = str(profile.form_factor)
+    if requested_form == FormFactorPreference.ITX:
+        board_id = "mb-itx-b650" if cpu.specs["socket"] == "AM5" else "mb-itx-b760"
+    elif cpu.specs["socket"] == "AM5":
         board_id = "mb-b650" if style == PlanStyle.PERFORMANCE else "mb-b650m"
     else:
         board_id = "mb-z790" if style != PlanStyle.VALUE else "mb-b760m-ddr4"
@@ -65,8 +69,11 @@ def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
     )
     storage = _by_id(parts, "ssd-2tb-a" if style != PlanStyle.VALUE else "ssd-1tb-a")
     required_power = cpu.power_w + gpu.power_w + 80
+    needs_12vhpwr = "12VHPWR" in gpu.specs.get("power_connectors", [])
     psu_id = (
-        "psu-850" if required_power > 500 else ("psu-750" if required_power > 380 else "psu-650")
+        "psu-850"
+        if required_power > 500 or needs_12vhpwr
+        else ("psu-750" if required_power > 380 else "psu-650")
     )
     psu = _by_id(parts, psu_id)
     cooling_pref = str(profile.cooling)
@@ -74,7 +81,8 @@ def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
         cooler = _by_id(parts, "cooler-water-240")
     else:
         cooler = _by_id(parts, "cooler-air-pro" if style == PlanStyle.PERFORMANCE else "cooler-air")
-    case = _by_id(parts, "case-atx" if board.specs["form_factor"] == "ATX" else "case-matx")
+    case_ids = {"ATX": "case-atx", "mATX": "case-matx", "Mini-ITX": "case-itx"}
+    case = _by_id(parts, case_ids.get(board.specs["form_factor"], "case-matx"))
     return [cpu, board, gpu, memory, storage, psu, cooler, case]
 
 

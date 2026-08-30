@@ -46,6 +46,12 @@ def interpret_message(content: str, current: NeedProfile) -> NeedProfile:
         data["noise"] = "偏静音"
     if "白色" in content or "海景房" in content:
         data["aesthetics"] = "白色简洁"
+    if re.search(r"(?:mini[- ]?itx|itx|迷你机|小钢炮)", lowered):
+        data["form_factor"] = "Mini-ITX"
+    elif re.search(r"(?:m[- ]?atx|matx|micro[- ]?atx|小机箱|紧凑)", lowered):
+        data["form_factor"] = "mATX"
+    elif re.search(r"(?:atx|标准机箱)", lowered):
+        data["form_factor"] = "ATX"
     return NeedProfile.model_validate(data)
 
 

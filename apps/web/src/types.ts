@@ -1,5 +1,6 @@
 export type BrandPreference = "any" | "amd" | "intel" | "nvidia";
 export type CoolingPreference = "any" | "air" | "water";
+export type FormFactorPreference = "any" | "ATX" | "mATX" | "Mini-ITX";
 export type PlanStyle = "value" | "balanced" | "performance";
 export type PartCategory = "cpu" | "motherboard" | "gpu" | "memory" | "storage" | "psu" | "cooling" | "case";
 export type LadderCategory = "cpu" | "gpu";
@@ -13,6 +14,7 @@ export interface NeedProfile {
   cpu_brand: BrandPreference;
   gpu_brand: BrandPreference;
   cooling: CoolingPreference;
+  form_factor: FormFactorPreference;
   aesthetics: string;
   noise: string;
   upgrade: string;
@@ -28,7 +30,7 @@ export interface Part {
   source: string;
   url?: string | null;
   image_url?: string | null;
-  specs: Record<string, string | number>;
+  specs: Record<string, unknown>;
   power_w: number;
 }
 

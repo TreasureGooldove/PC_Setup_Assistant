@@ -64,3 +64,30 @@ def test_fixture_plan_is_compatible_for_defaults():
     plans = generate_plans(NeedProfile(budget=8000))
     assert len(plans) == 3
     assert all(issue.severity != "error" for plan in plans for issue in plan.compatibility)
+
+
+def test_form_factor_preference_selects_itx_board_and_case():
+    from app.domain import NeedProfile
+    from app.features.builds.planner import generate_plans
+
+    plans = generate_plans(NeedProfile(budget=12000, form_factor="Mini-ITX"))
+    for plan in plans:
+        board = next(item.part for item in plan.items if item.slot == PartCategory.MOTHERBOARD)
+        case = next(item.part for item in plan.items if item.slot == PartCategory.CASE)
+        assert board.specs["form_factor"] == "Mini-ITX"
+        assert "Mini-ITX" in case.specs["supported_form_factors"]
+        assert not any(issue.code == "FORM_FACTOR" for issue in plan.compatibility)
+
+
+def test_detects_gpu_power_connector_shortage():
+    items = [
+        BuildItem(
+            slot=PartCategory.GPU,
+            part=make_part("gpu", PartCategory.GPU, {"power_connectors": ["2x8pin"]}, 200),
+        ),
+        BuildItem(
+            slot=PartCategory.PSU,
+            part=make_part("psu", PartCategory.PSU, {"wattage": 850, "pcie_8pin_count": 1}),
+        ),
+    ]
+    assert any(issue.code == "GPU_POWER_CONNECTOR" for issue in check_compatibility(items))
