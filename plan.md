@@ -25,6 +25,7 @@
 5. 配件替换/锁定、报价刷新、方案保存、Excel 导出。
 6. SQLite 任务队列、重试、租约、取消、背压、重启恢复和 SSE。
 7. 单元、集成、并发与前端构建测试。
+8. Windows/Linux 一键安装与启动脚手架，自动完成依赖同步、数据库迁移并拉起 API、Worker 和前端。
 
 ## Git 元数据
 
@@ -49,6 +50,12 @@
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/7
 - `merge_commit`: `858ce10`
 - `status`: 已完成；CI、后端回归和前端回归均通过。
+
+## Cross-platform bootstrap
+
+- `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/9
+- `scope`: Windows 使用 `install.bat`/`start.bat`，Linux 使用 `install.sh`/`start.sh`；`.bat` 采用 CRLF，`.sh` 采用 LF。
+- `status`: 开发中；安装脚本已完成依赖同步与数据库迁移，启动脚本负责 API、Worker、Vite 联动。
 
 ## 安全边界
 
