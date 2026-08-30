@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .pytest-tmp/
+apps/api/.tmp/
 .ruff_cache/
 .mypy_cache/
 .venv/
