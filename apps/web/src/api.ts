@@ -29,7 +29,14 @@ export const api = {
   getJob: (id: string) => request<Job>(`/api/jobs/${id}`),
   getPlans: (conversationId: string) => request<{ plans: BuildPlan[] }>(`/api/plans?conversation_id=${encodeURIComponent(conversationId)}`),
   getCatalog: (category: PartCategory) => request<{ items: Part[] }>(`/api/catalog/${category}`),
-  getLadder: (category: LadderCategory) => request<{ items: HardwareLadderEntry[] }>(`/api/ladder?category=${category}`),
+  getLadder: (category: LadderCategory, filters: { query?: string; brand?: string; minPrice?: number; maxPrice?: number } = {}) => {
+    const params = new URLSearchParams({ category });
+    if (filters.query) params.set("query", filters.query);
+    if (filters.brand) params.set("brand", filters.brand);
+    if (filters.minPrice !== undefined) params.set("min_price", String(filters.minPrice));
+    if (filters.maxPrice !== undefined) params.set("max_price", String(filters.maxPrice));
+    return request<{ items: HardwareLadderEntry[] }>(`/api/ladder?${params.toString()}`);
+  },
   searchGames: (query: string) => request<{ items: GameSearchResult[] }>(`/api/games/search?query=${encodeURIComponent(query)}`),
   getGameRequirements: (appId: string) => request<GameRequirement>(`/api/games/${encodeURIComponent(appId)}/requirements`),
   replaceItem: (planId: string, slot: PartCategory, partId: string, locked: boolean) => request<BuildPlan>(`/api/plans/${planId}/items/${slot}`, { method: "PATCH", body: JSON.stringify({ part_id: partId, locked }) }),

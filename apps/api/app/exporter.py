@@ -13,6 +13,8 @@ def export_plan(plan: BuildPlan, output_dir: Path, job_id: str) -> str:
     path = output_dir / f"build-plan-{job_id}.xlsx"
     workbook = Workbook()
     summary = workbook.active
+    if summary is None:  # openpyxl 的类型定义允许 None，正常新建工作簿不会出现该情况。
+        raise RuntimeError("无法创建方案概览工作表")
     summary.title = "方案概览"
     summary.append(["智能装机方案", plan.title])
     summary.append(["预算", plan.budget])

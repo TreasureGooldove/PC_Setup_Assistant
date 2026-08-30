@@ -32,6 +32,13 @@ export interface Part {
   image_url?: string | null;
   specs: Record<string, unknown>;
   power_w: number;
+  summary?: string;
+  rank?: number | null;
+  benchmark_score?: number | null;
+  percentile?: number | null;
+  advantages?: string[];
+  cautions?: string[];
+  data_updated_at?: string | null;
 }
 
 export interface CompatibilityIssue {

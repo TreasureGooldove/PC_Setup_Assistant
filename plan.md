@@ -57,6 +57,15 @@
 - `scope`: Windows 使用 `install.bat`/`start.bat`，Linux 使用 `install.sh`/`start.sh`；`.bat` 采用 CRLF，`.sh` 采用 LF。
 - `status`: 开发中；安装脚本已完成依赖同步与数据库迁移，启动脚本负责 API、Worker、Vite 联动。
 
+## 天梯、手动选配与游戏查询修复
+
+- `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/11
+- `branch`: `feat/11-manual-builder-ladder-games`
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/12
+- `scope`: 天梯筛选与可点击选配、配件规格/排行/点评/来源详情、手动替换后的兼容性复核、War Thunder 查询容错，以及演示方案导出保护。
+- `data_boundary`: 价格继续使用 Fixture；规格页链接用于人工核对，Steam 系统需求使用可复现快照，联网 Provider 可选启用。
+- `status`: 实现、本地回归和 GitHub CI 均已通过；本条记录随 PR #12 squash 合并后视为完成。
+
 ## 安全边界
 
 对话中曾出现的模型密钥不参与开发，也不写入文件。使用前必须在服务商控制台撤销旧密钥并生成新密钥；新值只放入本地未跟踪的 `.env`。

@@ -47,4 +47,42 @@ describe("智能装机搭子工作台", () => {
     fireEvent.click(screen.getByRole("button", { name: /新拟物派/ }));
     expect(document.querySelector('[data-theme="neumorphism"]')).toBeTruthy();
   });
+
+  it("finds War Thunder from the common warthuder typo", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "游戏配置" }));
+    const input = screen.getByLabelText("搜索游戏");
+    fireEvent.change(input, { target: { value: "warthuder" } });
+    fireEvent.submit(input.closest("form")!);
+    await waitFor(() => expect(screen.getByRole("button", { name: /War Thunder/ })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /War Thunder/ }));
+    await waitFor(() => expect(screen.getByText("95 GB 可用空间")).toBeTruthy());
+  });
+
+  it("opens hardware details from the ladder and supports selecting a candidate", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "硬件天梯" }));
+    const ladderName = await screen.findByText("GeForce RTX 4070 SUPER");
+    fireEvent.click(ladderName.closest("button")!);
+    expect(await screen.findByRole("dialog", { name: "选择显卡" })).toBeTruthy();
+    expect(screen.getByText("配件详情")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "使用此显卡" })).toBeTruthy();
+  });
+
+  it("does not request an export for a demo plan after the API connects", async () => {
+    const conversation = {
+      id: "conversation-test",
+      profile: { budget: 8000, use_case: "游戏与日常", resolution: "2K", refresh_rate: 165, cpu_brand: "any", gpu_brand: "any", cooling: "any", form_factor: "any", aesthetics: "简洁", noise: "均衡", upgrade: "保留升级空间", existing_parts: [] },
+      messages: [{ role: "assistant", content: "你好", created_at: new Date().toISOString() }],
+    };
+    const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(conversation), { status: 200, headers: { "Content-Type": "application/json" } })).mockRejectedValue(new Error("unexpected request"));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+    await waitFor(() => expect(screen.getByText("API 已连接")).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", { name: /导出清单/ }));
+    expect(screen.getByText(/当前是演示预览/)).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

@@ -84,6 +84,13 @@ class Part(BaseModel):
     image_url: str | None = None
     specs: dict[str, Any] = Field(default_factory=dict)
     power_w: int = Field(default=0, ge=0)
+    summary: str = ""
+    rank: int | None = Field(default=None, ge=1)
+    benchmark_score: int | None = Field(default=None, ge=0)
+    percentile: float | None = Field(default=None, ge=0, le=100)
+    advantages: list[str] = Field(default_factory=list)
+    cautions: list[str] = Field(default_factory=list)
+    data_updated_at: str | None = None
 
 
 class Offer(BaseModel):
