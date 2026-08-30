@@ -3,7 +3,13 @@ from __future__ import annotations
 from app.domain import HardwareLadderEntry, LadderCategory
 
 
-def ladder_entries(category: LadderCategory | None = None) -> list[HardwareLadderEntry]:
+def ladder_entries(
+    category: LadderCategory | None = None,
+    query: str = "",
+    brand: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+) -> list[HardwareLadderEntry]:
     entries = [
         HardwareLadderEntry(
             id="cpu-7800x3d",
@@ -42,10 +48,22 @@ def ladder_entries(category: LadderCategory | None = None) -> list[HardwareLadde
             note="低功耗与升级空间",
         ),
         HardwareLadderEntry(
-            id="cpu-13400f",
+            id="cpu-12600kf",
             category=LadderCategory.CPU,
             tier="B",
             rank=4,
+            name="Core i5-12600KF",
+            brand="Intel",
+            score=82,
+            power_w=125,
+            reference_price=999,
+            note="DDR4/DDR5 平台灵活",
+        ),
+        HardwareLadderEntry(
+            id="cpu-13400f",
+            category=LadderCategory.CPU,
+            tier="B",
+            rank=5,
             name="Core i5-13400F",
             brand="Intel",
             score=78,
@@ -106,6 +124,24 @@ def ladder_entries(category: LadderCategory | None = None) -> list[HardwareLadde
             note="1080P 性价比",
         ),
     ]
-    if category is None:
-        return entries
-    return [entry for entry in entries if entry.category == category]
+    result = entries
+    if category is not None:
+        result = [entry for entry in result if entry.category == category]
+    needle = query.strip().lower()
+    if needle:
+        result = [
+            entry
+            for entry in result
+            if needle in entry.name.lower() or needle in entry.note.lower()
+        ]
+    if brand:
+        result = [entry for entry in result if entry.brand.lower() == brand.strip().lower()]
+    if min_price is not None:
+        result = [
+            entry for entry in result if (entry.reference_price or 0) >= min_price
+        ]
+    if max_price is not None:
+        result = [
+            entry for entry in result if (entry.reference_price or 0) <= max_price
+        ]
+    return result

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from difflib import SequenceMatcher
 from html import unescape
 from typing import Protocol
 
@@ -104,6 +105,36 @@ class FixtureGameProvider:
                 storage_gb=75,
             ),
         ),
+        "236390": GameRequirement(
+            app_id="236390",
+            name="War Thunder",
+            source="Steam Store 官方配置（Fixture快照）",
+            minimum=SystemRequirement(
+                operating_system="Windows 10 64-bit",
+                processor="双核 2.2 GHz",
+                memory_gb=4,
+                graphics="AMD Radeon 77XX / NVIDIA GeForce GTX 660（DirectX 11）",
+                directx="DirectX 11",
+                storage_gb=70,
+            ),
+            recommended=SystemRequirement(
+                operating_system="Windows 10/11 64-bit",
+                processor="Intel Core i5 / AMD Ryzen 5 3600 或更高",
+                memory_gb=16,
+                graphics="NVIDIA GeForce GTX 1060 / AMD Radeon RX 570 或更高",
+                directx="DirectX 12",
+                storage_gb=95,
+            ),
+            notes=(
+                "配置来自 Steam Store 的 Windows 系统需求快照；"
+                "联网版本启用后会优先读取 appdetails。"
+            ),
+        ),
+    }
+
+    _aliases = {
+        "236390": ["war thunder", "warthunder", "warthuder", "战争雷霆"],
+        "730": ["cs2", "counter strike 2"],
     }
 
     async def search(self, query: str) -> list[GameSearchResult]:
@@ -114,7 +145,19 @@ class FixtureGameProvider:
         ]
         if not lowered:
             return games
-        return [game for game in games if lowered in game.name.lower() or lowered in game.app_id]
+        needle = _normalise_search_text(lowered)
+        matches: list[GameSearchResult] = []
+        for game in games:
+            candidates = [game.name, game.app_id, *self._aliases.get(game.app_id, [])]
+            normalised = [_normalise_search_text(value) for value in candidates]
+            if any(
+                needle in candidate
+                or candidate in needle
+                or SequenceMatcher(None, needle, candidate).ratio() >= 0.78
+                for candidate in normalised
+            ):
+                matches.append(game)
+        return matches
 
     async def get_requirements(self, app_id: str) -> GameRequirement | None:
         return self._games.get(app_id)
@@ -130,8 +173,24 @@ class SteamStoreProvider:
         self.enabled = enabled
 
     async def search(self, query: str) -> list[GameSearchResult]:
-        # Steam Store 的搜索接口格式和限流策略可能变化，预留为后续官方适配实现。
-        return []
+        if not self.enabled or not query.strip():
+            return []
+        async with httpx.AsyncClient(timeout=8) as client:
+            response = await client.get(
+                f"{self.base_url}/storesearch/",
+                params={"term": query.strip(), "cc": "cn", "l": "schinese"},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        return [
+            GameSearchResult(
+                app_id=str(item.get("id", "")),
+                name=str(item.get("name", "Steam 游戏")),
+                source="Steam Store 搜索",
+            )
+            for item in payload.get("items", [])[:10]
+            if str(item.get("id", "")).isdigit()
+        ]
 
     async def get_requirements(self, app_id: str) -> GameRequirement | None:
         if not self.enabled or not app_id.isdigit():
@@ -161,6 +220,56 @@ class SteamStoreProvider:
 
 
 def _parse_requirement_html(value: str) -> SystemRequirement:
-    text = unescape(re.sub(r"<[^>]+>", " ", value))
-    text = re.sub(r"\s+", " ", text).strip()
-    return SystemRequirement(additional_notes=text or "Steam 未提供该档位的完整信息。")
+    with_breaks = re.sub(r"<\s*(?:br|/li|/p)\s*/?>", "\n", value, flags=re.IGNORECASE)
+    text = unescape(re.sub(r"<[^>]+>", " ", with_breaks))
+    lines = [re.sub(r"\s+", " ", line).strip(" -•") for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    fields: dict[str, str] = {}
+    unknown: list[str] = []
+    labels = {
+        "os": "operating_system",
+        "operating system": "operating_system",
+        "操作系统": "operating_system",
+        "processor": "processor",
+        "cpu": "processor",
+        "处理器": "processor",
+        "memory": "memory",
+        "内存": "memory",
+        "graphics": "graphics",
+        "video card": "graphics",
+        "显卡": "graphics",
+        "directx": "directx",
+        "storage": "storage",
+        "hard drive": "storage",
+        "存储空间": "storage",
+    }
+    for line in lines:
+        match = re.match(r"^([^:：]{1,30})[:：]\s*(.+)$", line)
+        if not match:
+            unknown.append(line)
+            continue
+        key = labels.get(match.group(1).strip().lower())
+        if key:
+            fields[key] = match.group(2).strip()
+        else:
+            unknown.append(line)
+
+    memory_match = re.search(r"(\d+)\s*GB", fields.get("memory", ""), re.IGNORECASE)
+    storage_match = re.search(r"(\d+)\s*GB", fields.get("storage", ""), re.IGNORECASE)
+    if not fields:
+        return SystemRequirement(
+            additional_notes=" ".join(lines) or "Steam 未提供该档位的完整信息。"
+        )
+    return SystemRequirement(
+        operating_system=fields.get("operating_system", "未提供"),
+        processor=fields.get("processor", "未提供"),
+        memory_gb=int(memory_match.group(1)) if memory_match else None,
+        graphics=fields.get("graphics", "未提供"),
+        directx=fields.get("directx"),
+        storage_gb=int(storage_match.group(1)) if storage_match else None,
+        additional_notes="；".join(unknown) or None,
+    )
+
+
+def _normalise_search_text(value: str) -> str:
+    return re.sub(r"[^0-9a-z\u4e00-\u9fff]+", "", value.lower())

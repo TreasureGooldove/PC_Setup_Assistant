@@ -148,6 +148,12 @@ async def refresh_offers_route(
 async def export_route(
     plan_id: str, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")
 ):
+    if plan_id.startswith("demo-"):
+        raise AppError(
+            "演示方案尚未保存，请先点击“生成我的方案”再导出",
+            "DEMO_PLAN_NOT_PERSISTED",
+            409,
+        )
     get_plan(plan_id)
     key = idempotency_key or f"export:{plan_id}"
     return queue.enqueue("export_plan", {"plan_id": plan_id}, key, priority=20).model_dump(
@@ -165,10 +171,19 @@ async def catalog_route(category: PartCategory):
 
 
 @app.get("/api/ladder")
-async def ladder_route(category: LadderCategory | None = None):
+async def ladder_route(
+    category: LadderCategory | None = None,
+    query: str = "",
+    brand: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+):
     return {
         "category": category.value if category else "all",
-        "items": [entry.model_dump(mode="json") for entry in ladder_entries(category)],
+        "items": [
+            entry.model_dump(mode="json")
+            for entry in ladder_entries(category, query, brand, min_price, max_price)
+        ],
         "source": "Fixture性能参考",
     }
 

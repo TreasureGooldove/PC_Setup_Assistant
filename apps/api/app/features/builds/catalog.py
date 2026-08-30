@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.domain import Part, PartCategory
 
 
@@ -26,7 +28,7 @@ def fixture_parts() -> list[Part]:
             power_w=power_w,
         )
 
-    return [
+    items = [
         part(
             "cpu-7700",
             PartCategory.CPU,
@@ -34,6 +36,7 @@ def fixture_parts() -> list[Part]:
             "AMD",
             1599,
             {"socket": "AM5", "tdp": 65, "score": 86},
+            65,
         ),
         part(
             "cpu-7800x3d",
@@ -51,6 +54,7 @@ def fixture_parts() -> list[Part]:
             "Intel",
             1099,
             {"socket": "LGA1700", "tdp": 65, "score": 78},
+            65,
         ),
         part(
             "cpu-14600kf",
@@ -59,6 +63,28 @@ def fixture_parts() -> list[Part]:
             "Intel",
             1799,
             {"socket": "LGA1700", "tdp": 125, "score": 91},
+            125,
+        ),
+        part(
+            "cpu-12600kf",
+            PartCategory.CPU,
+            "Core i5-12600KF",
+            "Intel",
+            999,
+            {
+                "socket": "LGA1700",
+                "tdp": 125,
+                "score": 82,
+                "cores_threads": "10核16线程",
+                "base_clock": "3.7GHz",
+                "boost_clock": "4.9GHz",
+                "integrated_graphics": "不支持核显",
+                "l3_cache": "20MB",
+                "process": "Intel 7",
+                "architecture": "Alder Lake",
+                "memory_types": "DDR4 / DDR5",
+                "launch_year": "2021",
+            },
             125,
         ),
         part(
@@ -383,3 +409,103 @@ def fixture_parts() -> list[Part]:
             },
         ),
     ]
+
+    insights: dict[str, dict[str, Any]] = {
+        "cpu-7800x3d": {
+            "summary": "大容量 3D V-Cache 面向高帧率游戏，AM5 平台具备后续升级空间。",
+            "rank": 1,
+            "benchmark_score": 780000,
+            "percentile": 97.8,
+            "advantages": ["游戏帧率表现突出", "AM5 平台升级周期较长"],
+            "cautions": ["生产力负载并非同价位最强", "建议搭配可靠散热器"],
+            "url": "https://diy.pconline.com.cn/tiantitu/cpu/",
+        },
+        "cpu-14600kf": {
+            "summary": "14 核 20 线程的游戏与生产力均衡处理器，适合中高端独显平台。",
+            "rank": 2,
+            "benchmark_score": 735000,
+            "percentile": 91.4,
+            "advantages": ["多线程和高频兼顾", "主板与内存选择丰富"],
+            "cautions": ["无核显", "高负载功耗较高"],
+            "url": "https://diy.pconline.com.cn/tiantitu/cpu/",
+        },
+        "cpu-7700": {
+            "summary": "8 核 16 线程、65W 设计功耗，适合在能效和升级空间之间取平衡。",
+            "rank": 3,
+            "benchmark_score": 690000,
+            "percentile": 86.2,
+            "advantages": ["能效表现友好", "自带基础核显便于排障"],
+            "cautions": ["极限游戏性能低于 X3D 型号"],
+            "url": "https://diy.pconline.com.cn/tiantitu/cpu/",
+        },
+        "cpu-12600kf": {
+            "summary": "10 核 16 线程，单核频率高，支持 DDR4/DDR5，适合控制平台总价。",
+            "rank": 4,
+            "benchmark_score": 646985,
+            "percentile": 81.16,
+            "advantages": ["单核性能强，游戏表现稳定", "兼容 DDR4/DDR5，平台搭配灵活"],
+            "cautions": ["无核显，必须搭配独立显卡", "满载功耗较高，需关注散热与主板供电"],
+            "source": "规格：太平洋电脑网；价格：Fixture参考价",
+            "url": "https://product.pconline.com.cn/cpu/intel/1447887.html",
+        },
+        "cpu-13400f": {
+            "summary": "主流预算级混合架构处理器，适合 1080P 与入门 2K 游戏配置。",
+            "rank": 5,
+            "benchmark_score": 560000,
+            "percentile": 74.8,
+            "advantages": ["平台成本可控", "主流游戏够用"],
+            "cautions": ["无核显", "高端显卡场景可能限制上限"],
+            "url": "https://diy.pconline.com.cn/tiantitu/cpu/",
+        },
+        "gpu-4070s": {
+            "summary": "面向 2K 高刷新率与光追体验，12GB 显存适合多数主流游戏。",
+            "rank": 1,
+            "benchmark_score": 21000,
+            "percentile": 94.0,
+            "advantages": ["2K 游戏性能强", "DLSS 与光追生态完整"],
+            "cautions": ["12VHPWR 供电需确认电源线材", "12GB 显存不适合所有重度 AI 负载"],
+            "url": "https://product.pconline.com.cn/vga/c22604/",
+        },
+        "gpu-rx7800xt": {
+            "summary": "16GB 显存与较强光栅性能，适合重视 2K 画质和显存容量的用户。",
+            "rank": 2,
+            "benchmark_score": 19500,
+            "percentile": 91.0,
+            "advantages": ["16GB 显存充足", "光栅性能与价格平衡"],
+            "cautions": ["光追与部分创作生态弱于同档 NVIDIA", "整卡功耗较高"],
+            "url": "https://product.pconline.com.cn/vga/",
+        },
+        "gpu-4060ti": {
+            "summary": "主流 1080P/轻量 2K 显卡，功耗较低并支持 DLSS 3。",
+            "rank": 3,
+            "benchmark_score": 13400,
+            "percentile": 78.0,
+            "advantages": ["能效较好", "支持光追与帧生成"],
+            "cautions": ["8GB 显存需控制高分辨率材质", "高画质 2K 上限有限"],
+            "url": "https://product.pconline.com.cn/vga/",
+        },
+        "gpu-rx7600": {
+            "summary": "适合 1080P 主流游戏的预算显卡，整机成本容易控制。",
+            "rank": 4,
+            "benchmark_score": 10800,
+            "percentile": 74.0,
+            "advantages": ["1080P 性价比较好", "标准 8Pin 供电易搭配"],
+            "cautions": ["8GB 显存与 2K 高画质空间有限", "光追性能一般"],
+            "url": "https://product.pconline.com.cn/vga/",
+        },
+    }
+    for item in items:
+        insight = insights.get(item.id)
+        if not insight:
+            continue
+        item.summary = str(insight["summary"])
+        item.rank = int(insight["rank"])
+        item.benchmark_score = int(insight["benchmark_score"])
+        item.percentile = float(insight["percentile"])
+        item.advantages = list(insight["advantages"])
+        item.cautions = list(insight["cautions"])
+        if "source" in insight:
+            item.source = str(insight["source"])
+        item.url = str(insight["url"])
+        item.data_updated_at = "2026-08-30"
+    return items
