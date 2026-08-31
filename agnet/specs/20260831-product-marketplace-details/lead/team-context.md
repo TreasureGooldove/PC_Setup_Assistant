@@ -1,10 +1,11 @@
 ---
 title: 商品详情与多平台报价 Team Context
 type: team-context
-status: active
+status: ready-to-merge
 git_branch: feat/13-product-marketplace-details
 base_branch: main
 issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/14
 ---
 
 # Team Context
@@ -13,7 +14,7 @@ issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
 
 - Spec：`20260831-product-marketplace-details`
 - Issue：https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
-- 当前阶段：实现中
+- 当前阶段：CI 全部通过，准备 squash 合并
 
 ## Task Progress
 
@@ -25,7 +26,7 @@ issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
 | spec-executor | done | `executor/summary.md` |
 | spec-tester | done | `tester/test-report.md` |
 | spec-reviewer | done | `reviewer/review.md` |
-| spec-ender | pending | PR、CI 与收尾报告 |
+| spec-ender | done | `ender/end-report.md` |
 
 ## Shared Decisions
 

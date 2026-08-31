@@ -70,9 +70,10 @@
 
 - `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
 - `branch`: `feat/13-product-marketplace-details`
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/14
 - `scope`: 配置项主体直接换件、扩充 CPU/GPU/主板候选、统一目录天梯、独立商品详情、京东/拼多多报价与受控京东公开页参数解析。
 - `data_boundary`: ZOL 天梯和 DIY 作为资料信源；公开页解析默认关闭且只允许 `item.jd.com`，不绕过登录、验证码或反爬；失败时显示 Fixture 与数据状态。
-- `status`: 实现与本地验收完成，等待 PR CI 与 squash 合并。
+- `status`: 本地验收与 GitHub CI 全部通过；本记录随 PR #14 squash 合并后视为完成。
 
 ## 安全边界
 
