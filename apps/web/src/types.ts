@@ -2,7 +2,15 @@ export type BrandPreference = "any" | "amd" | "intel" | "nvidia";
 export type CoolingPreference = "any" | "air" | "water";
 export type FormFactorPreference = "any" | "ATX" | "mATX" | "Mini-ITX";
 export type PlanStyle = "value" | "balanced" | "performance";
-export type PartCategory = "cpu" | "motherboard" | "gpu" | "memory" | "storage" | "psu" | "cooling" | "case";
+export type PartCategory =
+  | "cpu"
+  | "motherboard"
+  | "gpu"
+  | "memory"
+  | "storage"
+  | "psu"
+  | "cooling"
+  | "case";
 export type LadderCategory = "cpu" | "gpu";
 export type AppView = "builder" | "ladder" | "games";
 
@@ -41,6 +49,54 @@ export interface Part {
   data_updated_at?: string | null;
 }
 
+export interface Offer {
+  part_id: string;
+  price: number;
+  source: string;
+  captured_at: string;
+  platform: "jd" | "pdd" | "taobao" | string;
+  sku?: string | null;
+  list_price?: number | null;
+  discount_price?: number | null;
+  landed_price?: number | null;
+  seller?: string | null;
+  coupon_note?: string | null;
+  status: string;
+  url?: string | null;
+  is_live: boolean;
+}
+
+export interface Evidence {
+  source: string;
+  title: string;
+  url?: string | null;
+  summary: string;
+  confidence: string;
+}
+
+export interface DataSourceStatus {
+  provider: string;
+  kind: string;
+  status:
+    | "live"
+    | "reference"
+    | "fixture"
+    | "disabled"
+    | "unconfigured"
+    | "unavailable"
+    | string;
+  note: string;
+  url?: string | null;
+  captured_at?: string | null;
+}
+
+export interface ProductDetail {
+  part: Part;
+  offers: Offer[];
+  evidence: Evidence[];
+  sources: DataSourceStatus[];
+}
+
 export interface CompatibilityIssue {
   code: string;
   severity: "error" | "warning";
@@ -73,7 +129,11 @@ export interface BuildPlan {
 export interface ConversationResponse {
   id: string;
   profile: NeedProfile;
-  messages: { role: "assistant" | "user"; content: string; created_at: string }[];
+  messages: {
+    role: "assistant" | "user";
+    content: string;
+    created_at: string;
+  }[];
 }
 
 export interface Job {
@@ -82,7 +142,12 @@ export interface Job {
   status: "queued" | "running" | "completed" | "cancelled" | "dead_letter";
   progress: number;
   message: string;
-  result?: { plans?: BuildPlan[]; path?: string; file_name?: string; plan?: BuildPlan } | null;
+  result?: {
+    plans?: BuildPlan[];
+    path?: string;
+    file_name?: string;
+    plan?: BuildPlan;
+  } | null;
   error?: string | null;
 }
 
@@ -98,6 +163,8 @@ export interface HardwareLadderEntry {
   power_w?: number | null;
   reference_price?: number | null;
   source: string;
+  source_url?: string | null;
+  data_updated_at?: string | null;
   note: string;
 }
 
