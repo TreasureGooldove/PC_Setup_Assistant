@@ -108,6 +108,7 @@ class Offer(BaseModel):
     coupon_note: str | None = None
     status: str = "参考价"
     url: str | None = None
+    is_live: bool = False
 
 
 class CompatibilityIssue(BaseModel):
@@ -163,7 +164,25 @@ class HardwareLadderEntry(BaseModel):
     power_w: int | None = Field(default=None, ge=0)
     reference_price: float | None = Field(default=None, ge=0)
     source: str = "Fixture性能参考"
+    source_url: str | None = None
+    data_updated_at: str | None = None
     note: str = ""
+
+
+class DataSourceStatus(BaseModel):
+    provider: str
+    kind: str
+    status: str
+    note: str
+    url: str | None = None
+    captured_at: datetime | None = None
+
+
+class ProductDetail(BaseModel):
+    part: Part
+    offers: list[Offer]
+    evidence: list[Evidence] = Field(default_factory=list)
+    sources: list[DataSourceStatus] = Field(default_factory=list)
 
 
 class BuildItem(BaseModel):

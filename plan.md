@@ -66,6 +66,15 @@
 - `data_boundary`: 价格继续使用 Fixture；规格页链接用于人工核对，Steam 系统需求使用可复现快照，联网 Provider 可选启用。
 - `status`: 实现、本地回归和 GitHub CI 均已通过；本条记录随 PR #12 squash 合并后视为完成。
 
+## 商品详情与多平台报价
+
+- `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/13
+- `branch`: `feat/13-product-marketplace-details`
+- `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/14
+- `scope`: 配置项主体直接换件、扩充 CPU/GPU/主板候选、统一目录天梯、独立商品详情、京东/拼多多报价与受控京东公开页参数解析。
+- `data_boundary`: ZOL 天梯和 DIY 作为资料信源；公开页解析默认关闭且只允许 `item.jd.com`，不绕过登录、验证码或反爬；失败时显示 Fixture 与数据状态。
+- `status`: 本地验收与 GitHub CI 全部通过；本记录随 PR #14 squash 合并后视为完成。
+
 ## 安全边界
 
 对话中曾出现的模型密钥不参与开发，也不写入文件。使用前必须在服务商控制台撤销旧密钥并生成新密钥；新值只放入本地未跟踪的 `.env`。

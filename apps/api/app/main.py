@@ -32,6 +32,7 @@ from app.features.conversations.service import (
 )
 from app.features.games.service import get_game_requirements, search_games
 from app.features.ladder.service import ladder_entries
+from app.features.products.service import get_product_detail
 from app.queue import JobQueue
 
 
@@ -170,6 +171,11 @@ async def catalog_route(category: PartCategory):
     }
 
 
+@app.get("/api/products/{part_id}")
+async def product_detail_route(part_id: str):
+    return (await get_product_detail(part_id)).model_dump(mode="json")
+
+
 @app.get("/api/ladder")
 async def ladder_route(
     category: LadderCategory | None = None,
@@ -184,7 +190,7 @@ async def ladder_route(
             entry.model_dump(mode="json")
             for entry in ladder_entries(category, query, brand, min_price, max_price)
         ],
-        "source": "Fixture性能参考",
+        "source": "中关村在线天梯结构参考 / 本地归一化",
     }
 
 
