@@ -47,7 +47,10 @@ def test_ladder_filters_catalog_insights_and_demo_export_guard():
             params={"category": "gpu", "query": "4070", "brand": "NVIDIA", "max_price": 4500},
         )
         assert ladder.status_code == 200
-        assert [item["id"] for item in ladder.json()["items"]] == ["gpu-4070s"]
+        assert [item["id"] for item in ladder.json()["items"]] == [
+            "gpu-4070s",
+            "gpu-4070",
+        ]
 
         catalog = client.get("/api/catalog/cpu")
         assert catalog.status_code == 200

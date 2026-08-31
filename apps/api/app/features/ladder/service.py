@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from app.domain import HardwareLadderEntry, LadderCategory
+from app.domain import HardwareLadderEntry, LadderCategory, PartCategory
+from app.features.builds.catalog import fixture_parts
+from app.features.builds.catalog_expansion import CPU_LADDER_URL, GPU_LADDER_URL
 
 
 def ladder_entries(
@@ -10,120 +12,31 @@ def ladder_entries(
     min_price: float | None = None,
     max_price: float | None = None,
 ) -> list[HardwareLadderEntry]:
-    entries = [
-        HardwareLadderEntry(
-            id="cpu-7800x3d",
-            category=LadderCategory.CPU,
-            tier="S",
-            rank=1,
-            name="Ryzen 7 7800X3D",
-            brand="AMD",
-            score=98,
-            power_w=120,
-            reference_price=2499,
-            note="游戏性能参考",
-        ),
-        HardwareLadderEntry(
-            id="cpu-14600kf",
-            category=LadderCategory.CPU,
-            tier="A",
-            rank=2,
-            name="Core i5-14600KF",
-            brand="Intel",
-            score=91,
-            power_w=125,
-            reference_price=1799,
-            note="游戏与生产力均衡",
-        ),
-        HardwareLadderEntry(
-            id="cpu-7700",
-            category=LadderCategory.CPU,
-            tier="A",
-            rank=3,
-            name="Ryzen 7 7700",
-            brand="AMD",
-            score=86,
-            power_w=65,
-            reference_price=1599,
-            note="低功耗与升级空间",
-        ),
-        HardwareLadderEntry(
-            id="cpu-12600kf",
-            category=LadderCategory.CPU,
-            tier="B",
-            rank=4,
-            name="Core i5-12600KF",
-            brand="Intel",
-            score=82,
-            power_w=125,
-            reference_price=999,
-            note="DDR4/DDR5 平台灵活",
-        ),
-        HardwareLadderEntry(
-            id="cpu-13400f",
-            category=LadderCategory.CPU,
-            tier="B",
-            rank=5,
-            name="Core i5-13400F",
-            brand="Intel",
-            score=78,
-            power_w=65,
-            reference_price=1099,
-            note="主流预算方案",
-        ),
-        HardwareLadderEntry(
-            id="gpu-4070s",
-            category=LadderCategory.GPU,
-            tier="S",
-            rank=1,
-            name="GeForce RTX 4070 SUPER",
-            brand="NVIDIA",
-            score=94,
-            vram_gb=12,
-            power_w=220,
-            reference_price=4499,
-            note="2K 高刷参考",
-        ),
-        HardwareLadderEntry(
-            id="gpu-rx7800xt",
-            category=LadderCategory.GPU,
-            tier="A",
-            rank=2,
-            name="Radeon RX 7800 XT",
-            brand="AMD",
-            score=91,
-            vram_gb=16,
-            power_w=263,
-            reference_price=3899,
-            note="显存充足",
-        ),
-        HardwareLadderEntry(
-            id="gpu-4060ti",
-            category=LadderCategory.GPU,
-            tier="B",
-            rank=3,
-            name="GeForce RTX 4060 Ti",
-            brand="NVIDIA",
-            score=78,
-            vram_gb=8,
-            power_w=160,
-            reference_price=2499,
-            note="能效与光追",
-        ),
-        HardwareLadderEntry(
-            id="gpu-rx7600",
-            category=LadderCategory.GPU,
-            tier="B",
-            rank=4,
-            name="Radeon RX 7600",
-            brand="AMD",
-            score=74,
-            vram_gb=8,
-            power_w=165,
-            reference_price=2099,
-            note="1080P 性价比",
-        ),
-    ]
+    entries: list[HardwareLadderEntry] = []
+    for part in fixture_parts():
+        if part.category not in (PartCategory.CPU, PartCategory.GPU) or part.rank is None:
+            continue
+        score = int(part.specs.get("score", 0))
+        source_url = CPU_LADDER_URL if part.category == PartCategory.CPU else GPU_LADDER_URL
+        entries.append(
+            HardwareLadderEntry(
+                id=part.id,
+                category=LadderCategory(str(part.category)),
+                tier="S" if score >= 93 else "A" if score >= 82 else "B" if score >= 70 else "C",
+                rank=part.rank,
+                name=part.name.removesuffix(" 8G").removesuffix(" 12G").removesuffix(" 16G"),
+                brand=part.brand,
+                score=score,
+                vram_gb=int(part.specs.get("vram_gb", 0)) or None,
+                power_w=part.power_w,
+                reference_price=part.price,
+                source="中关村在线天梯结构参考 / 本地归一化",
+                source_url=source_url,
+                data_updated_at=part.data_updated_at,
+                note=part.summary[:42],
+            )
+        )
+    entries.sort(key=lambda entry: (entry.category.value, entry.rank))
     result = entries
     if category is not None:
         result = [entry for entry in result if entry.category == category]
@@ -137,11 +50,7 @@ def ladder_entries(
     if brand:
         result = [entry for entry in result if entry.brand.lower() == brand.strip().lower()]
     if min_price is not None:
-        result = [
-            entry for entry in result if (entry.reference_price or 0) >= min_price
-        ]
+        result = [entry for entry in result if (entry.reference_price or 0) >= min_price]
     if max_price is not None:
-        result = [
-            entry for entry in result if (entry.reference_price or 0) <= max_price
-        ]
+        result = [entry for entry in result if (entry.reference_price or 0) <= max_price]
     return result

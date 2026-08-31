@@ -30,9 +30,14 @@ def _choose_gpu(parts: list[Part], profile: NeedProfile, style: PlanStyle) -> Pa
     ]
     if not candidates:
         candidates = [p for p in parts if p.category == PartCategory.GPU]
-    score_floor = {PlanStyle.VALUE: 70, PlanStyle.BALANCED: 82, PlanStyle.PERFORMANCE: 90}[style]
-    eligible = [p for p in candidates if p.specs.get("score", 0) >= score_floor]
-    return max(eligible or candidates, key=lambda p: p.specs.get("score", 0))
+    if style != PlanStyle.PERFORMANCE:
+        compact = [part for part in candidates if int(part.specs.get("length_mm", 999)) <= 330]
+        candidates = compact or candidates
+    target = {PlanStyle.VALUE: 72, PlanStyle.BALANCED: 84, PlanStyle.PERFORMANCE: 94}[style]
+    return min(
+        candidates,
+        key=lambda part: (abs(int(part.specs.get("score", 0)) - target), part.price),
+    )
 
 
 def _choose_cpu(parts: list[Part], profile: NeedProfile, style: PlanStyle) -> Part:
@@ -44,9 +49,11 @@ def _choose_cpu(parts: list[Part], profile: NeedProfile, style: PlanStyle) -> Pa
     ]
     if not candidates:
         candidates = [p for p in parts if p.category == PartCategory.CPU]
-    score_floor = {PlanStyle.VALUE: 75, PlanStyle.BALANCED: 84, PlanStyle.PERFORMANCE: 94}[style]
-    eligible = [p for p in candidates if p.specs.get("score", 0) >= score_floor]
-    return max(eligible or candidates, key=lambda p: p.specs.get("score", 0))
+    target = {PlanStyle.VALUE: 76, PlanStyle.BALANCED: 86, PlanStyle.PERFORMANCE: 95}[style]
+    return min(
+        candidates,
+        key=lambda part: (abs(int(part.specs.get("score", 0)) - target), part.price),
+    )
 
 
 def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
@@ -55,9 +62,17 @@ def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
     gpu = _choose_gpu(parts, profile, style)
     requested_form = str(profile.form_factor)
     if requested_form == FormFactorPreference.ITX:
-        board_id = "mb-itx-b650" if cpu.specs["socket"] == "AM5" else "mb-itx-b760"
+        board_id = (
+            "mb-itx-b650"
+            if cpu.specs["socket"] == "AM5"
+            else "mb-msi-b860i-edge"
+            if cpu.specs["socket"] == "LGA1851"
+            else "mb-itx-b760"
+        )
     elif cpu.specs["socket"] == "AM5":
         board_id = "mb-b650" if style == PlanStyle.PERFORMANCE else "mb-b650m"
+    elif cpu.specs["socket"] == "LGA1851":
+        board_id = "mb-asus-z890-e"
     else:
         board_id = "mb-z790" if style != PlanStyle.VALUE else "mb-b760m-ddr4"
     board = _by_id(parts, board_id)

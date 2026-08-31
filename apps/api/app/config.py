@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 
 from pydantic import Field
@@ -15,6 +16,8 @@ class Settings(BaseSettings):
     llm_model: str = "qwen3.8-max"
     steam_api_enabled: bool = False
     steam_api_base: str = "https://store.steampowered.com/api"
+    jd_public_fetch_enabled: bool = False
+    jd_product_urls_json: str = "{}"
     cors_origins: str = "http://localhost:5173"
     job_lease_seconds: int = Field(default=60, ge=10, le=3600)
     job_poll_seconds: float = Field(default=0.5, ge=0.1, le=30)
@@ -22,6 +25,16 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def jd_product_urls(self) -> dict[str, str]:
+        try:
+            payload = json.loads(self.jd_product_urls_json)
+        except json.JSONDecodeError:
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        return {str(key): str(value) for key, value in payload.items()}
 
 
 @lru_cache(maxsize=1)
