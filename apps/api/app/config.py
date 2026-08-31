@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     steam_api_base: str = "https://store.steampowered.com/api"
     jd_public_fetch_enabled: bool = False
     jd_product_urls_json: str = "{}"
+    catalog_public_sync_enabled: bool = True
+    catalog_sync_ttl_hours: int = Field(default=12, ge=1, le=168)
+    catalog_sync_max_items: int = Field(default=40, ge=5, le=48)
+    catalog_sync_timeout_seconds: float = Field(default=8.0, ge=2.0, le=30.0)
+    catalog_sync_max_response_bytes: int = Field(default=1_000_000, ge=100_000, le=2_000_000)
     cors_origins: str = "http://localhost:5173"
     job_lease_seconds: int = Field(default=60, ge=10, le=3600)
     job_poll_seconds: float = Field(default=0.5, ge=0.1, le=30)

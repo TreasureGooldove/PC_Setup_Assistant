@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -22,8 +23,8 @@ from app.domain import (
     ProfileUpdate,
 )
 from app.errors import AppError, NotFoundError, app_error_handler
-from app.features.builds.catalog import fixture_parts
 from app.features.builds.service import get_plan, list_plans, replace_item
+from app.features.catalog_sync.service import mark_sync_queued, query_catalog
 from app.features.conversations.service import (
     append_message,
     create_conversation,
@@ -163,12 +164,45 @@ async def export_route(
 
 
 @app.get("/api/catalog/{category}")
-async def catalog_route(category: PartCategory):
-    return {
-        "items": [
-            part.model_dump(mode="json") for part in fixture_parts() if part.category == category
-        ]
-    }
+async def catalog_route(
+    category: PartCategory,
+    query: str = "",
+    brand: str | None = None,
+    kind: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    sort: str = "default",
+):
+    return query_catalog(
+        category,
+        query=query,
+        brand=brand,
+        kind=kind,
+        min_price=min_price,
+        max_price=max_price,
+        sort=sort,
+    )
+
+
+@app.post("/api/catalog/{category}/refresh", status_code=202)
+async def refresh_catalog_route(
+    category: PartCategory,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
+    if not settings.catalog_public_sync_enabled:
+        raise AppError("公开目录同步未启用，当前继续使用本地候选", "CATALOG_SYNC_DISABLED", 409)
+    bucket_seconds = settings.catalog_sync_ttl_hours * 3600
+    bucket = int(datetime.now(UTC).timestamp()) // bucket_seconds
+    key = idempotency_key or f"catalog:{category.value}:{bucket}"
+    job = queue.enqueue(
+        "refresh_catalog",
+        {"category": category.value},
+        key,
+        priority=35,
+    )
+    if job.status in {"queued", "running"}:
+        mark_sync_queued(category)
+    return job.model_dump(mode="json")
 
 
 @app.get("/api/products/{part_id}")

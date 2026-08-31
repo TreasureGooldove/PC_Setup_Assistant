@@ -11,8 +11,8 @@ import httpx
 from app.config import Settings, get_settings
 from app.domain import DataSourceStatus, Evidence, Offer, Part, PartCategory, ProductDetail
 from app.errors import NotFoundError
-from app.features.builds.catalog import fixture_parts
 from app.features.builds.catalog_expansion import CPU_LADDER_URL, DIY_SOURCE_URL, GPU_LADDER_URL
+from app.features.catalog_sync.service import find_catalog_part
 
 MAX_JD_HTML_BYTES = 2_000_000
 
@@ -173,7 +173,7 @@ def _reference_evidence(part: Part) -> list[Evidence]:
 
 async def get_product_detail(part_id: str, settings: Settings | None = None) -> ProductDetail:
     configured = settings or get_settings()
-    part = next((item for item in fixture_parts() if item.id == part_id), None)
+    part = find_catalog_part(part_id)
     if part is None:
         raise NotFoundError("商品", part_id)
     result_part = part.model_copy(deep=True)

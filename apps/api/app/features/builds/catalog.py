@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.domain import Part, PartCategory
+from app.features.builds.catalog_accessories import accessory_parts
 from app.features.builds.catalog_expansion import apply_ladder_metadata, expanded_parts
 
 
@@ -412,6 +413,7 @@ def fixture_parts() -> list[Part]:
     ]
 
     items.extend(expanded_parts())
+    items.extend(accessory_parts())
 
     insights: dict[str, dict[str, Any]] = {
         "cpu-7800x3d": {
