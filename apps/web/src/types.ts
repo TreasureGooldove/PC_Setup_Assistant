@@ -49,6 +49,37 @@ export interface Part {
   data_updated_at?: string | null;
 }
 
+export interface CatalogFacetOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface CatalogFacets {
+  brands: CatalogFacetOption[];
+  kinds: CatalogFacetOption[];
+  price_min: number;
+  price_max: number;
+}
+
+export interface CatalogSyncStatus {
+  enabled: boolean;
+  status: "never" | "queued" | "running" | "completed" | "unavailable" | string;
+  provider: string;
+  item_count: number;
+  message: string;
+  updated_at?: string | null;
+  stale: boolean;
+  source_url?: string | null;
+}
+
+export interface CatalogResponse {
+  items: Part[];
+  total: number;
+  facets: CatalogFacets;
+  sync: CatalogSyncStatus;
+}
+
 export interface Offer {
   part_id: string;
   price: number;
@@ -147,6 +178,8 @@ export interface Job {
     path?: string;
     file_name?: string;
     plan?: BuildPlan;
+    category?: PartCategory;
+    item_count?: number;
   } | null;
   error?: string | null;
 }

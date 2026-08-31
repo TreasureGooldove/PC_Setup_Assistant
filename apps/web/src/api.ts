@@ -1,5 +1,6 @@
 import type {
   BuildPlan,
+  CatalogResponse,
   ConversationResponse,
   GameRequirement,
   GameSearchResult,
@@ -73,7 +74,14 @@ export const api = {
       `/api/plans?conversation_id=${encodeURIComponent(conversationId)}`,
     ),
   getCatalog: (category: PartCategory) =>
-    request<{ items: Part[] }>(`/api/catalog/${category}`),
+    request<CatalogResponse>(`/api/catalog/${category}`),
+  refreshCatalog: (category: PartCategory) =>
+    request<Job>(`/api/catalog/${category}/refresh`, {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": `catalog:${category}:${Date.now()}`,
+      },
+    }),
   getProduct: (partId: string) =>
     request<ProductDetail>(`/api/products/${encodeURIComponent(partId)}`),
   getLadder: (

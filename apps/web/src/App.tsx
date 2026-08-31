@@ -32,6 +32,7 @@ import type {
   AppView,
   BuildItem,
   BuildPlan,
+  CatalogSyncStatus,
   CompatibilityIssue,
   ConversationResponse,
   GameRequirement,
@@ -1089,6 +1090,8 @@ export default function App() {
   const [pickerItems, setPickerItems] = useState<Part[]>([]);
   const [pickerInitialPartId, setPickerInitialPartId] = useState<string>();
   const [pickerBusy, setPickerBusy] = useState(false);
+  const [pickerSync, setPickerSync] = useState<CatalogSyncStatus | null>(null);
+  const [pickerSyncProgress, setPickerSyncProgress] = useState(0);
   const [productDetail, setProductDetail] = useState<ProductDetail | null>(
     null,
   );
@@ -1104,6 +1107,8 @@ export default function App() {
     useState<GameRequirement | null>(null);
   const [gameBusy, setGameBusy] = useState(false);
   const stopStream = useRef<(() => void) | null>(null);
+  const catalogStopStream = useRef<(() => void) | null>(null);
+  const activePickerSlot = useRef<PartCategory | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -1123,6 +1128,7 @@ export default function App() {
     return () => {
       active = false;
       stopStream.current?.();
+      catalogStopStream.current?.();
     };
   }, []);
 
@@ -1291,8 +1297,11 @@ export default function App() {
     initialPartId?: string,
     initialPartName?: string,
   ) {
+    activePickerSlot.current = slot;
     setPickerSlot(slot);
     setPickerInitialPartId(initialPartId);
+    setPickerSync(null);
+    setPickerSyncProgress(0);
     const localItems = LOCAL_CATALOG.filter((part) => part.category === slot);
     setPickerItems(localItems);
     const localMatch = localItems.find(
@@ -1304,6 +1313,7 @@ export default function App() {
     setPickerBusy(true);
     try {
       const catalog = await api.getCatalog(slot);
+      setPickerSync(catalog.sync);
       if (catalog.items.length) {
         setPickerItems(catalog.items);
         const match = catalog.items.find(
@@ -1313,10 +1323,85 @@ export default function App() {
         );
         setPickerInitialPartId(match?.id ?? catalog.items[0].id);
       }
+      if (
+        catalog.sync.enabled &&
+        catalog.sync.stale &&
+        !["queued", "running"].includes(catalog.sync.status)
+      ) {
+        void refreshPickerCatalog(slot, true);
+      }
     } catch {
       setNotice("配件接口未连接，已显示本地参考数据");
     } finally {
       setPickerBusy(false);
+    }
+  }
+
+  async function refreshPickerCatalog(
+    slot: PartCategory,
+    automatic = false,
+  ) {
+    catalogStopStream.current?.();
+    setPickerSyncProgress(0);
+    setPickerSync((current) => ({
+      enabled: true,
+      status: "queued",
+      provider: current?.provider ?? "ZOL 公开产品目录",
+      item_count: current?.item_count ?? 0,
+      message: automatic ? "正在后台补充具体厂商型号" : "目录更新已进入后台队列",
+      updated_at: current?.updated_at,
+      stale: true,
+      source_url: current?.source_url,
+    }));
+    try {
+      const job = await api.refreshCatalog(slot);
+      catalogStopStream.current = streamJob(
+        job.id,
+        (event) => {
+          if (activePickerSlot.current !== slot) return;
+          setPickerSyncProgress(event.progress);
+          setPickerSync((current) =>
+            current
+              ? {
+                  ...current,
+                  status: event.status,
+                  message: event.message,
+                }
+              : current,
+          );
+        },
+        () => {
+          void api
+            .getCatalog(slot)
+            .then((catalog) => {
+              if (activePickerSlot.current !== slot) return;
+              setPickerItems(catalog.items);
+              setPickerSync(catalog.sync);
+              setPickerSyncProgress(100);
+              if (catalog.sync.status === "completed") {
+                setNotice(`已补充 ${catalog.sync.item_count} 个公开厂商型号`);
+              }
+            })
+            .catch(() => {
+              if (activePickerSlot.current === slot) {
+                setNotice("目录更新状态读取失败，当前候选仍可继续使用");
+              }
+            });
+        },
+      );
+    } catch (error) {
+      setPickerSync((current) =>
+        current
+          ? {
+              ...current,
+              status: "unavailable",
+              message: "更新暂不可用，继续展示本地与缓存候选",
+            }
+          : current,
+      );
+      if (!automatic) {
+        setNotice(error instanceof Error ? error.message : "目录更新失败");
+      }
     }
   }
 
@@ -1480,9 +1565,16 @@ export default function App() {
         items={pickerItems}
         initialPartId={pickerInitialPartId}
         busy={pickerBusy}
-        onClose={() => setPickerSlot(null)}
+        sync={pickerSync}
+        syncProgress={pickerSyncProgress}
+        onClose={() => {
+          catalogStopStream.current?.();
+          activePickerSlot.current = null;
+          setPickerSlot(null);
+        }}
         onUse={handleUsePart}
         onViewDetails={(part) => void openProductDetail(part)}
+        onRefresh={() => refreshPickerCatalog(pickerSlot)}
       />
     ) : null;
 

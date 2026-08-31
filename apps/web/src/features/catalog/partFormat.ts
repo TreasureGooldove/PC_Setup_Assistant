@@ -30,14 +30,21 @@ export const SPEC_LABELS: Record<string, string> = {
   launch_year: "上市年份",
   length_mm: "长度",
   vram_gb: "显存容量",
+  memory_bus_bit: "显存位宽",
   pcie_slot: "总线接口",
   power_connectors: "供电接口",
   memory_type: "内存代际",
+  speed_mts: "内存速率",
+  kit: "套装规格",
   capacity_gb: "容量",
   interface: "接口标准",
   connector: "物理接口",
   wattage: "额定功率",
   rating: "认证等级",
+  modular: "模组类型",
+  atx_3_0: "ATX 3.0",
+  pcie_8pin_count: "PCIe 8Pin 数量",
+  twelve_vhpwr: "12VHPWR / 12V-2x6",
   form_factor: "板型/尺寸",
   max_memory_gb: "最大内存",
   max_memory: "最大内存",
@@ -82,6 +89,8 @@ export function formatSpec(key: string, value: unknown) {
       return `${value}mm`;
     if (["capacity_gb", "max_memory_gb", "vram_gb"].includes(key))
       return `${value}GB`;
+    if (key === "memory_bus_bit") return `${value}bit`;
+    if (key === "speed_mts") return `${value}MT/s`;
   }
   return String(value);
 }
