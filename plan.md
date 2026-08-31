@@ -1,6 +1,6 @@
 # 智能装机搭子 MVP
 
-状态：已完成（MVP 的 PR #2、follow-up 的 PR #5，以及检查/报价增强的 PR #7 均已 squash 合并到 `main`）。
+状态：目录同步与候选筛选增强开发中（Issue #15）。
 
 ## 目标
 
@@ -74,6 +74,14 @@
 - `scope`: 配置项主体直接换件、扩充 CPU/GPU/主板候选、统一目录天梯、独立商品详情、京东/拼多多报价与受控京东公开页参数解析。
 - `data_boundary`: ZOL 天梯和 DIY 作为资料信源；公开页解析默认关闭且只允许 `item.jd.com`，不绕过登录、验证码或反爬；失败时显示 Fixture 与数据状态。
 - `status`: 本地验收与 GitHub CI 全部通过；本记录随 PR #14 squash 合并后视为完成。
+
+## 全品类候选与目录同步
+
+- `issue_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/15
+- `branch`: `feat/15-catalog-sync-filters`
+- `scope`: 各配件分类至少 12 个稳定候选；品牌、类型/系列、价格区间筛选；固定白名单公开目录的队列化同步、SQLite 缓存和失败回退。
+- `data_boundary`: Fixture 始终作为稳定回退；公开目录同步默认开启，只读取固定 ZOL 产品列表页，不携带登录态、不跟随重定向、不绕过验证码或访问控制。
+- `status`: 本地实现与验收完成，等待 PR 和 GitHub Actions。
 
 ## 安全边界
 
