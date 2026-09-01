@@ -7,7 +7,6 @@ Revises: 002_catalog_cache
 import sqlalchemy as sa
 from alembic import op
 
-
 revision = "003_recommendations"
 down_revision = "002_catalog_cache"
 branch_labels = None
