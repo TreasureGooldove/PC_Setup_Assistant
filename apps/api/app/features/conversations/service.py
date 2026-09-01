@@ -40,7 +40,9 @@ def interpret_message(content: str, current: NeedProfile) -> NeedProfile:
             data["resolution"] = resolution.upper()
     if any(word in content for word in ["剪辑", "渲染", "生产力"]):
         data["use_case"] = "视频剪辑与生产力"
-    elif any(word in content for word in ["游戏", "电竞", "网游"]):
+    elif any(word in content for word in ["游戏", "电竞", "网游", "战争雷霆"]):
+        data["use_case"] = "游戏与日常"
+    elif any(word in lowered for word in ["war thunder", "warthunder", "warthuder"]):
         data["use_case"] = "游戏与日常"
     if "静音" in content or "安静" in content:
         data["noise"] = "偏静音"
@@ -128,5 +130,5 @@ def update_profile(conversation_id: str, profile: NeedProfile) -> ConversationRe
 def _reply(profile: NeedProfile) -> str:
     return (
         f"收到：预算约 {profile.budget:,} 元，主要用于 {profile.use_case}，"
-        f"目标 {profile.resolution}。你可以继续调整偏好，或点击“生成方案”。"
+        f"目标 {profile.resolution}。正在整理可核对方案，完成后会进入方案工作台。"
     )

@@ -64,7 +64,7 @@ def _platform_prices(platform: str, payload: Mapping[str, Any]) -> tuple[Any, An
     if platform == "taobao":
         return (
             _value(payload, "reserve_price", "original_price"),
-            _value(payload, "zk_final_price", "discount_price"),
+            _value(payload, "zk_final_price", "discount_price", "final_price", "price"),
             _value(payload, "coupon_amount", "coupon_discount"),
             "yuan",
         )
@@ -114,7 +114,14 @@ def normalize_offer(
         list_price=list_price,
         discount_price=discount_price,
         landed_price=landed_price,
-        seller=_value(payload, "mall_name", "shop_title", "seller_nick"),
+        seller=_value(
+            payload,
+            "mall_name",
+            "shop_title",
+            "shop_name",
+            "store_name",
+            "seller_nick",
+        ),
         region=_value(payload, "provcity", "region"),
         coupon_note=coupon_note,
         status="活动价" if coupon else "参考价",

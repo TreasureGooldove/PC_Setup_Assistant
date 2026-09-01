@@ -5,9 +5,9 @@ from datetime import UTC, datetime
 from app.database import PlanRecord, SessionLocal, json_dump, json_load
 from app.domain import BuildPlan, NeedProfile, PartCategory
 from app.errors import NotFoundError
-from app.features.builds.catalog import fixture_parts
 from app.features.builds.compatibility import check_compatibility
 from app.features.builds.planner import generate_plans
+from app.features.catalog_sync.service import find_catalog_part
 
 
 def save_plans(conversation_id: str, profile: NeedProfile) -> list[BuildPlan]:
@@ -33,6 +33,14 @@ def get_plan(plan_id: str) -> BuildPlan:
         return BuildPlan.model_validate(json_load(record.plan_json, {}))
 
 
+def get_plan_with_conversation(plan_id: str) -> tuple[BuildPlan, str]:
+    with SessionLocal() as session:
+        record = session.get(PlanRecord, plan_id)
+        if not record:
+            raise NotFoundError("装机方案", plan_id)
+        return BuildPlan.model_validate(json_load(record.plan_json, {})), record.conversation_id
+
+
 def list_plans(conversation_id: str) -> list[BuildPlan]:
     with SessionLocal() as session:
         records = (
@@ -52,10 +60,8 @@ def replace_item(
         if not record:
             raise NotFoundError("装机方案", plan_id)
         plan = BuildPlan.model_validate(json_load(record.plan_json, {}))
-        part = next(
-            (item for item in fixture_parts() if item.id == part_id and item.category == slot), None
-        )
-        if not part:
+        part = find_catalog_part(part_id)
+        if not part or part.category != slot:
             raise NotFoundError("配件", part_id)
         item = next((item for item in plan.items if item.slot == slot), None)
         if not item:

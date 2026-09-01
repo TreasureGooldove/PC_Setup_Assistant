@@ -1,0 +1,11 @@
+{
+  "server": {
+    "command": "python",
+    "args": ["D:/tools/taobao_mcp/server.py"],
+    "cwd": "D:/tools/taobao_mcp"
+  },
+  "notes": [
+    "此文件只是路径示例，API 实际使用 apps/api/.env 中的 TAOBAO_MCP_* 配置。",
+    "首次调用会要求在淘宝 MCP 打开的浏览器窗口完成扫码登录。"
+  ]
+}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# ruff: noqa: E501 -- 目录元组保持单行，便于按产品核对与维护。
 from typing import Any
 
 from app.domain import Part, PartCategory
@@ -187,6 +188,175 @@ def expanded_parts() -> list[Part]:
             summary=f"{vram}GB 显存独立显卡，选入后会复核机箱限长、供电接口和电源余量。",
         )
         for item_id, name, brand, price, power, vram, connector in gpu_rows
+    ]
+
+    aib_gpu_rows: list[tuple[str, str, str, float, int, int, int, str, str]] = [
+        (
+            "gpu-asus-tuf-5060ti-o16g",
+            "TUF RTX 5060 Ti O16G GAMING",
+            "华硕 ASUS",
+            6699,
+            180,
+            16,
+            128,
+            "GDDR7",
+            "RTX 5060 Ti",
+        ),
+        (
+            "gpu-gigabyte-5080-gaming-oc",
+            "魔鹰 RTX 5080 Gaming OC 16G",
+            "技嘉 GIGABYTE",
+            14299,
+            360,
+            16,
+            256,
+            "GDDR7",
+            "RTX 5080",
+        ),
+        (
+            "gpu-xfx-rx6750gre",
+            "RX 6750 GRE 海外版 12GB",
+            "讯景 XFX",
+            2699,
+            250,
+            12,
+            192,
+            "GDDR6",
+            "RX 6750 GRE",
+        ),
+        (
+            "gpu-asus-tuf-5070-o12g",
+            "TUF RTX 5070 O12G GAMING",
+            "华硕 ASUS",
+            7699,
+            250,
+            12,
+            192,
+            "GDDR7",
+            "RTX 5070",
+        ),
+        (
+            "gpu-gigabyte-5070-gaming-oc",
+            "魔鹰 RTX 5070 Gaming OC 12G",
+            "技嘉 GIGABYTE",
+            7699,
+            250,
+            12,
+            192,
+            "GDDR7",
+            "RTX 5070",
+        ),
+        (
+            "gpu-yeston-rx6800xt-sakura",
+            "RX 6800 XT 16GD6 樱瞳花嫁纪念版",
+            "盈通 YESTON",
+            2899,
+            300,
+            16,
+            256,
+            "GDDR6",
+            "RX 6800 XT",
+        ),
+        (
+            "gpu-colorful-5070-ultra",
+            "iGame RTX 5070 Ultra W OC 12GB",
+            "七彩虹 COLORFUL",
+            6599,
+            250,
+            12,
+            192,
+            "GDDR7",
+            "RTX 5070",
+        ),
+        (
+            "gpu-msi-5070-trio",
+            "RTX 5070 GAMING TRIO OC 12G",
+            "微星 MSI",
+            6899,
+            250,
+            12,
+            192,
+            "GDDR7",
+            "RTX 5070",
+        ),
+        (
+            "gpu-maxsun-5060ti-icraft",
+            "RTX 5060 Ti iCraft OC 16G",
+            "铭瑄 MAXSUN",
+            4299,
+            180,
+            16,
+            128,
+            "GDDR7",
+            "RTX 5060 Ti",
+        ),
+        (
+            "gpu-sapphire-9070xt-nitro",
+            "RX 9070 XT NITRO+ 16G",
+            "蓝宝石 SAPPHIRE",
+            6499,
+            330,
+            16,
+            256,
+            "GDDR6",
+            "RX 9070 XT",
+        ),
+        (
+            "gpu-powercolor-9070-reaper",
+            "RX 9070 Reaper 16G",
+            "撼讯 POWERCOLOR",
+            4999,
+            220,
+            16,
+            256,
+            "GDDR6",
+            "RX 9070",
+        ),
+        (
+            "gpu-zotac-5080-solid",
+            "RTX 5080 SOLID OC 16G",
+            "索泰 ZOTAC",
+            12999,
+            360,
+            16,
+            256,
+            "GDDR7",
+            "RTX 5080",
+        ),
+    ]
+    aib_gpu_parts = [
+        _part(
+            item_id,
+            PartCategory.GPU,
+            name,
+            brand,
+            price,
+            {
+                "chipset": chipset,
+                "vram_gb": vram,
+                "memory_type": memory_type,
+                "memory_bus_bit": memory_bus,
+                "length_mm": 340 if power >= 320 else 320 if power >= 250 else 300,
+                "pcie_slot": "PCIe 5.0 x16"
+                if "50" in chipset or "90" in chipset
+                else "PCIe 4.0 x16",
+                "power_connectors": ["12V-2x6" if chipset.startswith("RTX 50") else "2x8pin"],
+                "catalog_kind": chipset,
+            },
+            power,
+            summary=f"{brand} 非公版 {chipset}，{vram}GB {memory_type}、{memory_bus}bit。",
+        )
+        for (
+            item_id,
+            name,
+            brand,
+            price,
+            power,
+            vram,
+            memory_bus,
+            memory_type,
+            chipset,
+        ) in aib_gpu_rows
     ]
 
     board_rows: list[tuple[str, str, str, float, dict[str, Any]]] = [
@@ -403,7 +573,7 @@ def expanded_parts() -> list[Part]:
         )
         for item_id, name, brand, price, specs in board_rows
     ]
-    return cpu_parts + gpu_parts + board_parts
+    return cpu_parts + gpu_parts + aib_gpu_parts + board_parts
 
 
 CPU_RANKING = [

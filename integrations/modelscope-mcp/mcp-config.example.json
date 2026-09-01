@@ -1,0 +1,8 @@
+{
+  "command": "npx.cmd",
+  "args": ["-y", "open-websearch@2.1.9"],
+  "env": {
+    "MODE": "stdio",
+    "ALLOWED_SEARCH_ENGINES": "baidu,bing"
+  }
+}

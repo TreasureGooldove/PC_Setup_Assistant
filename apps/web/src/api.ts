@@ -1,5 +1,6 @@
 import type {
   BuildPlan,
+  CatalogResponse,
   ConversationResponse,
   GameRequirement,
   GameSearchResult,
@@ -10,6 +11,7 @@ import type {
   PartCategory,
   LadderCategory,
   ProductDetail,
+  Recommendation,
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -73,7 +75,14 @@ export const api = {
       `/api/plans?conversation_id=${encodeURIComponent(conversationId)}`,
     ),
   getCatalog: (category: PartCategory) =>
-    request<{ items: Part[] }>(`/api/catalog/${category}`),
+    request<CatalogResponse>(`/api/catalog/${category}`),
+  refreshCatalog: (category: PartCategory) =>
+    request<Job>(`/api/catalog/${category}/refresh`, {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": `catalog:${category}:${Date.now()}`,
+      },
+    }),
   getProduct: (partId: string) =>
     request<ProductDetail>(`/api/products/${encodeURIComponent(partId)}`),
   getLadder: (
@@ -104,6 +113,25 @@ export const api = {
     request<GameRequirement>(
       `/api/games/${encodeURIComponent(appId)}/requirements`,
     ),
+  searchCommunity: (query: string) =>
+    request<{
+      query: string;
+      status: "disabled" | "live" | "empty" | "unavailable" | string;
+      provider: string;
+      note: string;
+      search_url?: string | null;
+      items: Array<{
+        id: string;
+        title: string;
+        summary: string;
+        url: string;
+        author?: string | null;
+        published_at?: string | null;
+        source: string;
+        confidence: "low";
+        status: "live" | "reference";
+      }>;
+    }>(`/api/community/search?query=${encodeURIComponent(query)}`),
   replaceItem: (
     planId: string,
     slot: PartCategory,
@@ -114,6 +142,31 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ part_id: partId, locked }),
     }),
+  generateRecommendation: (
+    planId: string,
+    options: {
+      gameAppId?: string;
+      communityQuery?: string;
+      includeCommunityEvidence?: boolean;
+    } = {},
+  ) => {
+    const body = {
+      ...(options.gameAppId ? { game_app_id: options.gameAppId } : {}),
+      ...(options.communityQuery ? { community_query: options.communityQuery } : {}),
+      include_community_evidence: options.includeCommunityEvidence ?? true,
+    };
+    return request<Job>(`/api/plans/${encodeURIComponent(planId)}/recommendations`, {
+      method: "POST",
+      headers: {
+        "Idempotency-Key": `recommendation:${planId}:${options.gameAppId ?? "none"}:${Date.now()}`,
+      },
+      body: JSON.stringify(body),
+    });
+  },
+  getRecommendation: (recommendationId: string) =>
+    request<Recommendation>(
+      `/api/recommendations/${encodeURIComponent(recommendationId)}`,
+    ),
   exportPlan: (planId: string) =>
     request<Job>(`/api/plans/${planId}/exports`, {
       method: "POST",

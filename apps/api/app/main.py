@@ -3,10 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, Header, Request
+from fastapi import FastAPI, Header, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -20,10 +21,14 @@ from app.domain import (
     MessageCreate,
     PartCategory,
     ProfileUpdate,
+    Recommendation,
+    RecommendationRequest,
 )
 from app.errors import AppError, NotFoundError, app_error_handler
-from app.features.builds.catalog import fixture_parts
 from app.features.builds.service import get_plan, list_plans, replace_item
+from app.features.catalog_sync.service import mark_sync_queued, query_catalog
+from app.features.community.service import search_community
+from app.features.community.tieba_mcp import close_modelscope_mcp_processes
 from app.features.conversations.service import (
     append_message,
     create_conversation,
@@ -33,6 +38,8 @@ from app.features.conversations.service import (
 from app.features.games.service import get_game_requirements, search_games
 from app.features.ladder.service import ladder_entries
 from app.features.products.service import get_product_detail
+from app.features.products.taobao_mcp import close_taobao_mcp_processes
+from app.features.recommendations.service import get_recommendation
 from app.queue import JobQueue
 
 
@@ -44,7 +51,11 @@ class ItemUpdate(BaseModel):
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
-    yield
+    try:
+        yield
+    finally:
+        await close_taobao_mcp_processes()
+        await close_modelscope_mcp_processes()
 
 
 settings = get_settings()
@@ -145,13 +156,41 @@ async def refresh_offers_route(
     )
 
 
+@app.post("/api/plans/{plan_id}/recommendations", status_code=202)
+async def recommendation_route(
+    plan_id: str,
+    body: RecommendationRequest | None = None,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
+    get_plan(plan_id)
+    body = body or RecommendationRequest()
+    game_key = body.game_app_id or "none"
+    key = idempotency_key or f"recommendation:{plan_id}:{game_key}"
+    return queue.enqueue(
+        "generate_recommendation",
+        {
+            "plan_id": plan_id,
+            "game_app_id": body.game_app_id,
+            "community_query": body.community_query,
+            "include_community_evidence": body.include_community_evidence,
+        },
+        key + f":community:{body.include_community_evidence}:{body.community_query or ''}",
+        priority=15,
+    ).model_dump(mode="json")
+
+
+@app.get("/api/recommendations/{recommendation_id}", response_model=Recommendation)
+async def get_recommendation_route(recommendation_id: str):
+    return get_recommendation(recommendation_id)
+
+
 @app.post("/api/plans/{plan_id}/exports", status_code=202)
 async def export_route(
     plan_id: str, idempotency_key: str | None = Header(default=None, alias="Idempotency-Key")
 ):
     if plan_id.startswith("demo-"):
         raise AppError(
-            "演示方案尚未保存，请先点击“生成我的方案”再导出",
+            "演示方案尚未保存，请先提交需求或点击“重新生成并核对”再导出",
             "DEMO_PLAN_NOT_PERSISTED",
             409,
         )
@@ -163,12 +202,45 @@ async def export_route(
 
 
 @app.get("/api/catalog/{category}")
-async def catalog_route(category: PartCategory):
-    return {
-        "items": [
-            part.model_dump(mode="json") for part in fixture_parts() if part.category == category
-        ]
-    }
+async def catalog_route(
+    category: PartCategory,
+    query: str = "",
+    brand: str | None = None,
+    kind: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    sort: str = "default",
+):
+    return query_catalog(
+        category,
+        query=query,
+        brand=brand,
+        kind=kind,
+        min_price=min_price,
+        max_price=max_price,
+        sort=sort,
+    )
+
+
+@app.post("/api/catalog/{category}/refresh", status_code=202)
+async def refresh_catalog_route(
+    category: PartCategory,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
+    if not settings.catalog_public_sync_enabled:
+        raise AppError("公开目录同步未启用，当前继续使用本地候选", "CATALOG_SYNC_DISABLED", 409)
+    bucket_seconds = settings.catalog_sync_ttl_hours * 3600
+    bucket = int(datetime.now(UTC).timestamp()) // bucket_seconds
+    key = idempotency_key or f"catalog:{category.value}:{bucket}"
+    job = queue.enqueue(
+        "refresh_catalog",
+        {"category": category.value},
+        key,
+        priority=35,
+    )
+    if job.status in {"queued", "running"}:
+        mark_sync_queued(category)
+    return job.model_dump(mode="json")
 
 
 @app.get("/api/products/{part_id}")
@@ -208,6 +280,13 @@ async def game_requirements_route(app_id: str):
     if result is None:
         raise NotFoundError("游戏配置", app_id)
     return result.model_dump(mode="json")
+
+
+@app.get("/api/community/search")
+async def community_search_route(
+    query: str = Query(min_length=1, max_length=180),
+):
+    return (await search_community(query)).model_dump(mode="json")
 
 
 @app.get("/api/jobs/{job_id}")

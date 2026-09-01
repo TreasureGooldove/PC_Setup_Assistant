@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.domain import Part, PartCategory
+from app.features.builds.catalog_accessories import accessory_parts
 from app.features.builds.catalog_expansion import apply_ladder_metadata, expanded_parts
 
 
@@ -409,9 +410,37 @@ def fixture_parts() -> list[Part]:
                 "radiator_mm": 240,
             },
         ),
+        Part(
+            id="mb-asus-tuf-b760m-plus-d4",
+            category=PartCategory.MOTHERBOARD,
+            name="TUF GAMING B760M-PLUS D4 重炮手",
+            brand="华硕 ASUS",
+            price=1159,
+            source="ZOL公开详情页参考价",
+            url="https://detail.zol.com.cn/1441/1440076/param.shtml",
+            specs={
+                "socket": "LGA1700",
+                "chipset": "Intel B760",
+                "form_factor": "mATX",
+                "memory_type": "DDR4",
+                "max_memory_gb": 128,
+                "memory_slots": 4,
+                "m2_slots": 2,
+                "sata_ports": 4,
+                "gpu_slot": "PCIe 4.0 x16",
+                "pcie_version": "PCI Express 4.0",
+                "dimensions": "24.4×24.4cm",
+                "motherboard_power_connector": "一个4针，一个8针，一个24针",
+                "audio_codec": "集成 Realtek 7.1 声道音效芯片",
+            },
+            summary="Intel B760 / LGA1700 / DDR4 的 mATX 主板，参数可由 ZOL 公开详情页复核。",
+            cautions=["页面金额属于公开参考报价，购买前仍需核对具体店铺与活动。"],
+            data_updated_at="2026-08-31",
+        ),
     ]
 
     items.extend(expanded_parts())
+    items.extend(accessory_parts())
 
     insights: dict[str, dict[str, Any]] = {
         "cpu-7800x3d": {

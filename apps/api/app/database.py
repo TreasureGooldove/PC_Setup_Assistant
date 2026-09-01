@@ -39,6 +39,17 @@ class PlanRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class RecommendationRecord(Base):
+    __tablename__ = "recommendations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    plan_id: Mapped[str] = mapped_column(String(36), index=True)
+    plan_fingerprint: Mapped[str] = mapped_column(String(64), index=True)
+    recommendation_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class JobRecord(Base):
     __tablename__ = "jobs"
 
@@ -67,6 +78,29 @@ class JobEventRecord(Base):
     progress: Mapped[int] = mapped_column(Integer, default=0)
     message: Mapped[str] = mapped_column(String(300), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class CatalogPartRecord(Base):
+    __tablename__ = "catalog_parts"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    category: Mapped[str] = mapped_column(String(30), index=True)
+    source: Mapped[str] = mapped_column(String(80), index=True)
+    part_json: Mapped[str] = mapped_column(Text, nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class CatalogSyncRecord(Base):
+    __tablename__ = "catalog_sync_states"
+
+    category: Mapped[str] = mapped_column(String(30), primary_key=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    provider: Mapped[str] = mapped_column(String(80), default="ZOL 公开产品目录")
+    item_count: Mapped[int] = mapped_column(Integer, default=0)
+    message: Mapped[str] = mapped_column(String(300), default="尚未同步")
+    captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 def _sqlite_pragmas(dbapi_connection: Any, _: Any) -> None:

@@ -16,6 +16,8 @@ from app.domain import (
 from app.features.builds.catalog import fixture_parts
 from app.features.builds.compatibility import check_compatibility
 
+LOW_BUDGET_CUTOFF = 6000
+
 
 def _by_id(parts: list[Part], item_id: str) -> Part:
     return next(item for item in parts if item.id == item_id)
@@ -30,6 +32,8 @@ def _choose_gpu(parts: list[Part], profile: NeedProfile, style: PlanStyle) -> Pa
     ]
     if not candidates:
         candidates = [p for p in parts if p.category == PartCategory.GPU]
+    if profile.budget < LOW_BUDGET_CUTOFF:
+        return min(candidates, key=lambda part: part.price)
     if style != PlanStyle.PERFORMANCE:
         compact = [part for part in candidates if int(part.specs.get("length_mm", 999)) <= 330]
         candidates = compact or candidates
@@ -49,6 +53,8 @@ def _choose_cpu(parts: list[Part], profile: NeedProfile, style: PlanStyle) -> Pa
     ]
     if not candidates:
         candidates = [p for p in parts if p.category == PartCategory.CPU]
+    if profile.budget < LOW_BUDGET_CUTOFF:
+        return min(candidates, key=lambda part: part.price)
     target = {PlanStyle.VALUE: 76, PlanStyle.BALANCED: 86, PlanStyle.PERFORMANCE: 95}[style]
     return min(
         candidates,
@@ -98,6 +104,55 @@ def _choose_parts(profile: NeedProfile, style: PlanStyle) -> list[Part]:
         cooler = _by_id(parts, "cooler-air-pro" if style == PlanStyle.PERFORMANCE else "cooler-air")
     case_ids = {"ATX": "case-atx", "mATX": "case-matx", "Mini-ITX": "case-itx"}
     case = _by_id(parts, case_ids.get(board.specs["form_factor"], "case-matx"))
+    if profile.budget < LOW_BUDGET_CUTOFF:
+        compatible_boards = [
+            part
+            for part in parts
+            if part.category == PartCategory.MOTHERBOARD
+            and part.specs.get("socket") == cpu.specs.get("socket")
+            and (
+                requested_form == FormFactorPreference.ANY
+                or part.specs.get("form_factor") == requested_form
+            )
+        ]
+        if compatible_boards:
+            board = min(compatible_boards, key=lambda part: part.price)
+        compatible_memory = [
+            part
+            for part in parts
+            if part.category == PartCategory.MEMORY
+            and part.specs.get("memory_type") == board.specs.get("memory_type")
+        ]
+        if compatible_memory:
+            memory = min(compatible_memory, key=lambda part: part.price)
+        compatible_storage = [part for part in parts if part.category == PartCategory.STORAGE]
+        if compatible_storage:
+            storage = min(compatible_storage, key=lambda part: part.price)
+        compatible_cooling = [
+            part
+            for part in parts
+            if part.category == PartCategory.COOLING
+            and part.specs.get("type") == cooling_pref
+            and cpu.specs.get("socket") in part.specs.get("supported_sockets", [])
+        ]
+        if cooling_pref == "any":
+            compatible_cooling = [
+                part
+                for part in parts
+                if part.category == PartCategory.COOLING
+                and part.specs.get("type") == "air"
+                and cpu.specs.get("socket") in part.specs.get("supported_sockets", [])
+            ]
+        if compatible_cooling:
+            cooler = min(compatible_cooling, key=lambda part: part.price)
+        compatible_cases = [
+            part
+            for part in parts
+            if part.category == PartCategory.CASE
+            and board.specs.get("form_factor") in part.specs.get("supported_form_factors", [])
+        ]
+        if compatible_cases:
+            case = min(compatible_cases, key=lambda part: part.price)
     return [cpu, board, gpu, memory, storage, psu, cooler, case]
 
 
@@ -108,6 +163,10 @@ def generate_plans(profile: NeedProfile) -> list[BuildPlan]:
         PlanStyle.PERFORMANCE: ("高性能释放", "优先保障高刷新率和更长的使用周期。"),
     }
     plans: list[BuildPlan] = []
+    minimum_reference_total = round(
+        sum(part.price for part in _choose_parts(profile, PlanStyle.VALUE)),
+        2,
+    )
     for style in (PlanStyle.VALUE, PlanStyle.BALANCED, PlanStyle.PERFORMANCE):
         selected = _choose_parts(profile, style)
         reasons = {
@@ -131,15 +190,23 @@ def generate_plans(profile: NeedProfile) -> list[BuildPlan]:
         issues = check_compatibility(items)
         total = round(sum(item.part.price for item in items), 2)
         if total > profile.budget:
+            if profile.budget < minimum_reference_total:
+                budget_detail = (
+                    f"当前数据中符合偏好的完整配置最低参考价约 {minimum_reference_total:.0f} 元，"
+                    f"仍比预算高 {minimum_reference_total - profile.budget:.0f} 元；"
+                    "可提高预算、暂不购买独立显卡，或改用已有配件。"
+                )
+            else:
+                budget_detail = (
+                    f"当前参考价约 {total:.0f} 元，超出预算 {total - profile.budget:.0f} 元，"
+                    "可替换显卡、存储或散热器。"
+                )
             issues.append(
                 CompatibilityIssue(
                     code="BUDGET_OVER",
                     severity="warning",
                     title="方案高于当前预算",
-                    detail=(
-                        f"当前参考价约 {total:.0f} 元，超出预算 "
-                        f"{total - profile.budget:.0f} 元，可替换显卡或存储。"
-                    ),
+                    detail=budget_detail,
                     related_slots=["gpu", "storage"],
                 )
             )

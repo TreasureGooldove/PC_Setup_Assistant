@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   BarChart3,
   Check,
   CheckCircle2,
@@ -28,10 +29,14 @@ import { api, streamJob } from "./api";
 import { PartPicker } from "./features/catalog/PartPicker";
 import { OFFLINE_CATALOG } from "./features/catalog/offlineCatalog";
 import { ProductDetailPage } from "./features/catalog/ProductDetailPage";
+import { RecommendationCard } from "./features/recommendations/RecommendationCard";
+import { createOfflineRecommendation } from "./features/recommendations/offlineRecommendation";
+import { RequestInsightPanel } from "./features/recommendations/RequestInsightPanel";
 import type {
   AppView,
   BuildItem,
   BuildPlan,
+  CatalogSyncStatus,
   CompatibilityIssue,
   ConversationResponse,
   GameRequirement,
@@ -39,9 +44,11 @@ import type {
   HardwareLadderEntry,
   LadderCategory,
   NeedProfile,
+  Offer,
   Part,
   PartCategory,
   ProductDetail,
+  Recommendation,
   SystemRequirement,
 } from "./types";
 
@@ -61,6 +68,28 @@ const DEFAULT_PROFILE: NeedProfile = {
   upgrade: "保留升级空间",
   existing_parts: [],
 };
+
+const MIN_BUDGET = 2500;
+const SLIDER_MAX_BUDGET = 20000;
+const MAX_CUSTOM_BUDGET = 100000;
+
+function normalizeBudget(value: number) {
+  if (!Number.isFinite(value)) return MIN_BUDGET;
+  return Math.min(
+    MAX_CUSTOM_BUDGET,
+    Math.max(MIN_BUDGET, Math.round(value)),
+  );
+}
+
+function budgetValidationMessage(value: string) {
+  if (!value.trim()) return "请输入预算";
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) return "请输入有效数字";
+  if (amount < MIN_BUDGET) return `最低预算为 ¥${formatMoney(MIN_BUDGET)}`;
+  if (amount > MAX_CUSTOM_BUDGET)
+    return `最高预算为 ¥${formatMoney(MAX_CUSTOM_BUDGET)}`;
+  return "支持精确到 1 元，生成前会自动校准";
+}
 
 const SLOT_LABELS: Record<PartCategory, string> = {
   cpu: "处理器",
@@ -386,23 +415,25 @@ const LOCAL_CATALOG: Part[] = [
 ];
 
 function localProductDetail(part: Part): ProductDetail {
-  const captured_at = new Date().toISOString();
-  const offer = (platform: "jd" | "pdd", ratio: number) => ({
-    part_id: part.id,
-    price: Math.round(part.price * ratio),
-    landed_price: Math.round(part.price * ratio),
-    list_price: Math.round(part.price * 1.05),
-    source: `${platform === "jd" ? "京东" : "拼多多"}示例报价`,
-    captured_at,
-    platform,
-    seller: `${platform === "jd" ? "京东" : "拼多多"}搜索入口`,
-    status: "示例报价（未联网）",
-    is_live: false,
-    url:
-      platform === "jd"
-        ? `https://search.jd.com/Search?keyword=${encodeURIComponent(part.name)}`
-        : `https://mobile.yangkeduo.com/search_result.html?search_key=${encodeURIComponent(part.name)}`,
-  });
+  const keyword = encodeURIComponent(part.name);
+  const offers: Offer[] = [
+    {
+      part_id: part.id,
+      source: "京东平台搜索入口",
+      platform: "jd",
+      status: "待联网",
+      is_live: false,
+      url: `https://search.jd.com/Search?keyword=${keyword}`,
+    },
+    {
+      part_id: part.id,
+      source: "拼多多平台搜索入口",
+      platform: "pdd",
+      status: "待联网",
+      is_live: false,
+      url: `https://mobile.yangkeduo.com/search_result.html?search_key=${keyword}`,
+    },
+  ];
   const sourceTitle =
     part.category === "cpu"
       ? "ZOL CPU 天梯"
@@ -411,7 +442,7 @@ function localProductDetail(part: Part): ProductDetail {
         : "ZOL DIY 硬件频道";
   return {
     part,
-    offers: [offer("jd", 1), offer("pdd", 0.96)],
+    offers,
     evidence: [
       {
         source: "中关村在线",
@@ -427,21 +458,20 @@ function localProductDetail(part: Part): ProductDetail {
         kind: "parameters",
         status: "reference",
         note: "离线可复现参数。",
-        captured_at,
       },
       {
         provider: "京东",
         kind: "price",
-        status: "fixture",
-        note: "示例报价，点击后请在平台核价。",
-        captured_at,
+        status: "unavailable",
+        note: "当前未连接授权报价接口，仅提供搜索入口，不显示推导金额。",
+        url: offers[0].url,
       },
       {
         provider: "拼多多",
         kind: "price",
-        status: "fixture",
-        note: "示例报价，点击后请在平台核价。",
-        captured_at,
+        status: "unavailable",
+        note: "当前未连接授权报价接口，仅提供搜索入口，不显示推导金额。",
+        url: offers[1].url,
       },
     ],
   };
@@ -533,14 +563,47 @@ const LOCAL_GAMES: Record<string, GameRequirement> = {
     notes:
       "来自 Steam 商店公开系统需求；联机体验还会受分辨率、画质与网络状况影响。",
   },
+  "rsi:star-citizen": {
+    app_id: "rsi:star-citizen",
+    name: "Star Citizen（星际公民）",
+    source: "RSI 官方 Game and Launcher Requirements",
+    source_kind: "official",
+    minimum: requirement(
+      "Windows 10/11 64-bit",
+      "支持 AVX/AVX2/FMA3 的四核处理器（Intel i7 Haswell+ 或 AMD Excavator+）",
+      16,
+      "支持 DirectX 11.1 且显存 4GB 以上",
+      "DirectX 11.1",
+      150,
+    ),
+    recommended: requirement(
+      "Windows 10/11 64-bit",
+      "官方未提供统一的推荐 CPU 型号",
+      0,
+      "官方未提供统一的推荐显卡型号",
+      "未提供",
+      150,
+    ),
+    notes:
+      "RSI 官方页面主要提供最低要求；需要 SSD，Linux/macOS 不是官方支持平台。推荐档位请结合目标分辨率和实际版本测试。",
+  },
 };
 
 const GAME_ALIASES: Record<string, string[]> = {
   "236390": ["warthuder", "warthunder", "war thunder", "战争雷霆"],
+  "rsi:star-citizen": ["star citizen", "starcitizen", "星际公民", "sc"],
 };
 
 function normaliseSearchText(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, "");
+}
+
+function matchesGameCandidate(query: string, needle: string, candidate: string) {
+  const normalized = normaliseSearchText(candidate);
+  if (normalized.length <= 2 && /^[a-z0-9]+$/i.test(normalized)) {
+    return new RegExp(`(^|[^a-z0-9])${normalized}([^a-z0-9]|$)`, "i").test(query);
+  }
+  return normalized.includes(needle) || needle.includes(normalized);
 }
 
 function searchLocalGames(query: string) {
@@ -551,10 +614,23 @@ function searchLocalGames(query: string) {
         !needle ||
         game.app_id === query ||
         [game.name, ...(GAME_ALIASES[game.app_id] ?? [])].some((name) =>
-          normaliseSearchText(name).includes(needle),
+          matchesGameCandidate(query, needle, name),
         ),
     )
     .map(({ app_id, name, source }) => ({ app_id, name, source }));
+}
+
+function findMentionedGame(content: string): GameRequirement | null {
+  const needle = normaliseSearchText(content);
+  if (!needle) return null;
+  return (
+    Object.values(LOCAL_GAMES).find((game) =>
+      [game.name, ...(GAME_ALIASES[game.app_id] ?? [])].some((name) => {
+        const candidate = normaliseSearchText(name);
+        return candidate.length > 1 && matchesGameCandidate(content, needle, name);
+      }),
+    ) ?? null
+  );
 }
 
 function demoPlans(profile: NeedProfile): BuildPlan[] {
@@ -607,8 +683,64 @@ function demoPlans(profile: NeedProfile): BuildPlan[] {
               cooler_height_mm: 165,
               radiator_mm: 240,
             },
-          };
-  const baseParts = { ...DEMO_PARTS, motherboard: board, case: casePart };
+        };
+  const budgetConstrained = profile.budget < 6000;
+  const findLowest = (
+    category: PartCategory,
+    predicate: (part: Part) => boolean = () => true,
+  ) =>
+    OFFLINE_CATALOG.filter(
+      (part) => part.category === category && predicate(part),
+    ).sort((left, right) => left.price - right.price)[0];
+  const preferredCpu = budgetConstrained
+    ? findLowest(
+        "cpu",
+        (part) =>
+          profile.cpu_brand === "any" ||
+          part.brand.toLowerCase() === profile.cpu_brand,
+      )
+    : undefined;
+  const selectedCpu = preferredCpu ?? DEMO_PARTS.cpu;
+  const preferredBoard = budgetConstrained
+    ? findLowest(
+        "motherboard",
+        (part) =>
+          part.specs.socket === selectedCpu.specs.socket &&
+          (profile.form_factor === "any" ||
+            part.specs.form_factor === formFactor),
+      )
+    : undefined;
+  const selectedBoard = preferredBoard ?? board;
+  const preferredGpu = budgetConstrained
+    ? findLowest(
+        "gpu",
+        (part) =>
+          profile.gpu_brand === "any" ||
+          part.brand.toLowerCase() === profile.gpu_brand,
+      )
+    : undefined;
+  const selectedGpu = preferredGpu ?? DEMO_PARTS.gpu;
+  const selectedMemory =
+    budgetConstrained &&
+    (selectedBoard.specs as Record<string, unknown>)["memory_type"] === "DDR4"
+      ? {
+          ...DEMO_PARTS.memory,
+          id: "demo-memory-ddr4-entry",
+          name: "DDR4 3200 32GB套装",
+          brand: "光威",
+          specs: { ...DEMO_PARTS.memory.specs, memory_type: "DDR4" },
+        }
+      : DEMO_PARTS.memory;
+  const baseParts = {
+    cpu: selectedCpu,
+    motherboard: selectedBoard,
+    gpu: selectedGpu,
+    memory: selectedMemory,
+    storage: DEMO_PARTS.storage,
+    psu: DEMO_PARTS.psu,
+    cooling: DEMO_PARTS.cooling,
+    case: casePart,
+  };
   return styles.map((style, index) => {
     const items: BuildItem[] = Object.values(baseParts).map((part) => ({
       slot: part.category,
@@ -616,8 +748,7 @@ function demoPlans(profile: NeedProfile): BuildPlan[] {
       locked: false,
       reason: `${part.category === "gpu" ? profile.resolution : "预算与兼容性"} 取向。`,
     }));
-    const multiplier = [0.78, 1, 1.12][index];
-    if (index === 0)
+    if (index === 0 && !budgetConstrained)
       items.find((item) => item.slot === "gpu")!.part = {
         ...DEMO_PARTS.gpu,
         name: "Radeon RX 7600 8G",
@@ -626,16 +757,24 @@ function demoPlans(profile: NeedProfile): BuildPlan[] {
         id: "demo-gpu-value",
         power_w: 165,
       };
-    if (index === 2)
+    if (index === 2 && !budgetConstrained)
       items.find((item) => item.slot === "memory")!.part = {
         ...DEMO_PARTS.memory,
         name: "DDR5 6000 64GB套装",
         price: 1199,
         id: "demo-memory-performance",
       };
-    const total = Math.round(
-      items.reduce((sum, item) => sum + item.part.price, 0) * multiplier,
-    );
+    const total = items.reduce((sum, item) => sum + item.part.price, 0);
+    const compatibility = manualPreviewIssues(items);
+    if (total > profile.budget) {
+      compatibility.push({
+        code: "BUDGET_OVER",
+        severity: "warning",
+        title: "预算不足以覆盖完整配置",
+        detail: `当前完整配置参考价约 ${formatMoney(total)} 元，超出预算 ${formatMoney(total - profile.budget)} 元；本地目录未用降价比例伪造平台金额。`,
+        related_slots: ["cpu", "motherboard", "gpu", "memory", "storage", "psu", "cooling", "case"],
+      });
+    }
     return {
       id: `demo-${style}`,
       style,
@@ -643,10 +782,12 @@ function demoPlans(profile: NeedProfile): BuildPlan[] {
       summary: summaries[index],
       budget: profile.budget,
       total_price: total,
-      estimated_power_w: 365 + index * 70,
-      performance_score: 78 + index * 10,
+      estimated_power_w: items.reduce((sum, item) => sum + item.part.power_w, 80),
+      performance_score: budgetConstrained
+        ? Number(items.find((item) => item.slot === "gpu")?.part.specs.score ?? 60)
+        : 78 + index * 10,
       items,
-      compatibility: [],
+      compatibility,
       created_at: now,
     };
   });
@@ -1070,12 +1211,20 @@ export default function App() {
   );
   const [activePlanId, setActivePlanId] = useState("demo-balanced");
   const [message, setMessage] = useState("");
+  const [budgetDraft, setBudgetDraft] = useState(String(DEFAULT_PROFILE.budget));
   const [notice, setNotice] = useState(
     "演示模式已就绪；启动 API 和 Worker 后可刷新真实任务与导出。",
   );
+  const [generationFeedback, setGenerationFeedback] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState(0);
   const [jobMessage, setJobMessage] = useState("准备中");
+  const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+  const [recommendationPlanId, setRecommendationPlanId] = useState<string | null>(null);
+  const [recommendationBusy, setRecommendationBusy] = useState(false);
+  const [recommendationError, setRecommendationError] = useState("");
+  const [recommendationProgress, setRecommendationProgress] = useState(0);
+  const [recommendationMessage, setRecommendationMessage] = useState("准备中");
   const [demoMode, setDemoMode] = useState(true);
   const [ladderCategory, setLadderCategory] = useState<LadderCategory>("gpu");
   const [ladderItems, setLadderItems] = useState<HardwareLadderEntry[]>(
@@ -1089,6 +1238,10 @@ export default function App() {
   const [pickerItems, setPickerItems] = useState<Part[]>([]);
   const [pickerInitialPartId, setPickerInitialPartId] = useState<string>();
   const [pickerBusy, setPickerBusy] = useState(false);
+  const [pickerSync, setPickerSync] = useState<CatalogSyncStatus | null>(null);
+  const [pickerSyncProgress, setPickerSyncProgress] = useState(0);
+  const [pickerOffers, setPickerOffers] = useState<Offer[]>([]);
+  const [pickerOffersBusy, setPickerOffersBusy] = useState(false);
   const [productDetail, setProductDetail] = useState<ProductDetail | null>(
     null,
   );
@@ -1104,25 +1257,36 @@ export default function App() {
     useState<GameRequirement | null>(null);
   const [gameBusy, setGameBusy] = useState(false);
   const stopStream = useRef<(() => void) | null>(null);
+  const recommendationStopStream = useRef<(() => void) | null>(null);
+  const recommendationRequestId = useRef(0);
+  const catalogStopStream = useRef<(() => void) | null>(null);
+  const activePickerSlot = useRef<PartCategory | null>(null);
+  const pickerOfferRequest = useRef(0);
+  const hasUserInteracted = useRef(false);
 
   useEffect(() => {
     let active = true;
     api
       .createConversation(DEFAULT_PROFILE)
       .then((result) => {
-        if (active) {
-          setConversation(result);
+        if (!active) return;
+        setConversation(result);
+        setDemoMode(false);
+        if (!hasUserInteracted.current) {
           setProfile(result.profile);
-          setDemoMode(false);
-          setNotice("已连接到本地 API");
+          setBudgetDraft(String(result.profile.budget));
         }
+        setNotice("已连接到本地 API");
       })
       .catch(() => {
-        if (active) setConversation(localConversation(DEFAULT_PROFILE));
+        if (active && !hasUserInteracted.current)
+          setConversation(localConversation(DEFAULT_PROFILE));
       });
     return () => {
       active = false;
       stopStream.current?.();
+      recommendationStopStream.current?.();
+      catalogStopStream.current?.();
     };
   }, []);
 
@@ -1162,6 +1326,84 @@ export default function App() {
   const warnings =
     activePlan?.compatibility.filter((item) => item.severity === "warning") ??
     [];
+  const budgetIssue = activePlan?.compatibility.find(
+    (item) => item.code === "BUDGET_OVER",
+  );
+
+  async function requestRecommendationForPlan(
+    targetPlan: BuildPlan,
+    profileForPlan: NeedProfile = profile,
+    gameRequirementForPlan: GameRequirement | null = gameRequirement,
+  ) {
+    const requestId = ++recommendationRequestId.current;
+    recommendationStopStream.current?.();
+    recommendationStopStream.current = null;
+    setRecommendationPlanId(targetPlan.id);
+    setRecommendation(null);
+    setRecommendationError("");
+    setRecommendationBusy(true);
+    setRecommendationProgress(8);
+    setRecommendationMessage("准备整理需求与配置依据");
+    try {
+      if (demoMode || targetPlan.id.startsWith("demo-")) {
+        await new Promise((resolve) => window.setTimeout(resolve, 420));
+        if (requestId === recommendationRequestId.current) {
+          setRecommendation(
+            createOfflineRecommendation(
+              targetPlan,
+              profileForPlan,
+              gameRequirementForPlan,
+            ),
+          );
+          setRecommendationProgress(100);
+          setRecommendationMessage("已完成");
+        }
+        return;
+      }
+      const job = await api.generateRecommendation(targetPlan.id, {
+        gameAppId: gameRequirementForPlan?.app_id,
+        includeCommunityEvidence: true,
+      });
+      recommendationStopStream.current = streamJob(
+        job.id,
+        (event) => {
+          if (requestId !== recommendationRequestId.current) return;
+          setRecommendationProgress(event.progress);
+          setRecommendationMessage(event.message);
+        },
+        () => undefined,
+      );
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const current = await api.getJob(job.id);
+        if (requestId !== recommendationRequestId.current) return;
+        setRecommendationProgress(current.progress);
+        setRecommendationMessage(current.message);
+        if (current.status === "completed") {
+          let result = current.result?.recommendation;
+          if (!result && current.result?.recommendation_id) {
+            result = await api.getRecommendation(current.result.recommendation_id);
+          }
+          if (!result) throw new Error("建议结果为空，请稍后重试");
+          setRecommendation(result);
+          setRecommendationProgress(100);
+          setRecommendationMessage("已完成");
+          return;
+        }
+        if (["dead_letter", "cancelled"].includes(current.status)) {
+          throw new Error(current.error ?? "建议任务未完成");
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
+      throw new Error("建议等待超时，请确认 Worker 已启动");
+    } catch (error) {
+      if (requestId === recommendationRequestId.current) {
+        setRecommendationError(error instanceof Error ? error.message : "建议生成失败，请稍后重试");
+      }
+    } finally {
+      if (requestId === recommendationRequestId.current) setRecommendationBusy(false);
+    }
+  }
+
   const ladderBrands = useMemo(
     () => Array.from(new Set(ladderItems.map((item) => item.brand))).sort(),
     [ladderItems],
@@ -1199,49 +1441,178 @@ export default function App() {
   const updateProfile = <K extends keyof NeedProfile>(
     key: K,
     value: NeedProfile[K],
-  ) => setProfile((current) => ({ ...current, [key]: value }));
+  ) => {
+    setProfile((current) => ({ ...current, [key]: value }));
+    setRecommendation(null);
+    setRecommendationPlanId(null);
+    setRecommendationError("");
+    if (key === "budget") setBudgetDraft(String(value));
+  };
+
+  const commitBudgetDraft = () => {
+    const amount = Number(budgetDraft);
+    const nextBudget = Number.isFinite(amount)
+      ? normalizeBudget(amount)
+      : profile.budget;
+    setBudgetDraft(String(nextBudget));
+    updateProfile("budget", nextBudget);
+  };
+
+  function revealGeneratedPlans() {
+    const target = document.getElementById("plans-workbench");
+    if (target && typeof target.scrollIntoView === "function") {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function applyMentionedGame(game: GameRequirement | null) {
+    if (!game) return;
+    setGameQuery(game.name);
+    setGameRequirement(game);
+    setGameResults([{ app_id: game.app_id, name: game.name, source: game.source }]);
+  }
 
   async function handleSend(event: FormEvent) {
     event.preventDefault();
+    if (isGenerating || recommendationBusy) return;
     const content = message.trim();
     if (!content) return;
+    hasUserInteracted.current = true;
+    recommendationStopStream.current?.();
+    recommendationRequestId.current += 1;
+    setRecommendation(null);
+    setRecommendationPlanId(null);
+    setRecommendationError("");
     setMessage("");
-    if (conversation && !demoMode) {
+    setIsGenerating(true);
+    setJobProgress(4);
+    setJobMessage("正在接收需求");
+    setGenerationFeedback("");
+    const mentionedGame = findMentionedGame(content);
+    const parsedDraftBudget = Number(budgetDraft);
+    const profileForInterpretation: NeedProfile = Number.isFinite(parsedDraftBudget)
+      ? { ...profile, budget: normalizeBudget(parsedDraftBudget) }
+      : profile;
+    const next = localInterpret(content, profileForInterpretation);
+    const nextGame = mentionedGame ?? gameRequirement;
+    let nextConversation = conversation;
+    let forceLocalGeneration = demoMode || !conversation;
+
+    if (!forceLocalGeneration && conversation) {
       try {
-        setConversation(await api.sendMessage(conversation.id, content));
-        setProfile((current) => localInterpret(content, current));
-        setNotice("需求已更新");
-        return;
+        nextConversation = await api.sendMessage(conversation.id, content);
+        setConversation(nextConversation);
+        setProfile(next);
+        setBudgetDraft(String(next.budget));
+        applyMentionedGame(mentionedGame);
+        setNotice(
+          mentionedGame
+            ? `已识别游戏：${mentionedGame.name}，正在生成可核对方案`
+            : "需求已更新，正在生成可核对方案",
+        );
       } catch {
-        setNotice("API 暂不可用，已切换本地演示");
+        forceLocalGeneration = true;
+        setDemoMode(true);
+        setNotice("API 暂不可用，正在使用本地可核对方案");
       }
     }
-    const next = localInterpret(content, profile);
+
     setProfile(next);
-    setConversation((current) => ({
-      ...(current ?? localConversation(profile)),
-      profile: next,
-      messages: [
-        ...(current?.messages ?? []),
-        { role: "user", content, created_at: new Date().toISOString() },
-        {
-          role: "assistant",
-          content: `收到：预算约 ${formatMoney(next.budget)} 元，目标 ${next.resolution}。可以点击生成方案。`,
-          created_at: new Date().toISOString(),
-        },
-      ],
-    }));
-    setNotice("需求已更新（本地演示）");
+    setBudgetDraft(String(next.budget));
+    applyMentionedGame(mentionedGame);
+
+    if (forceLocalGeneration) {
+      setConversation((current) => ({
+        ...(current ?? localConversation(profile)),
+        profile: next,
+        messages: [
+          ...(current?.messages ?? []),
+          { role: "user", content, created_at: new Date().toISOString() },
+          {
+            role: "assistant",
+            content: `收到：预算约 ${formatMoney(next.budget)} 元，目标 ${next.resolution}。${
+              mentionedGame
+                ? `已识别游戏：${mentionedGame.name}，最低/推荐配置已载入。`
+                : ""
+            }正在生成可核对方案，完成后会进入方案工作台。`,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      }));
+    }
+
+    await handleGenerate(
+      next,
+      nextConversation,
+      nextGame,
+      forceLocalGeneration,
+    );
   }
 
-  async function handleGenerate() {
+  async function handleGenerate(
+    profileOverride?: NeedProfile,
+    conversationOverride?: ConversationResponse | null,
+    gameRequirementOverride?: GameRequirement | null,
+    forceLocal = false,
+  ) {
+    const profileBase = profileOverride ?? profile;
+    const parsedBudget = Number(budgetDraft);
+    const effectiveProfile: NeedProfile = profileOverride
+      ? { ...profileBase, budget: normalizeBudget(profileBase.budget) }
+      : {
+          ...profileBase,
+          budget: Number.isFinite(parsedBudget)
+            ? normalizeBudget(parsedBudget)
+            : profileBase.budget,
+        };
+    const targetConversation =
+      conversationOverride === undefined ? conversation : conversationOverride;
+    const targetGame =
+      gameRequirementOverride === undefined
+        ? gameRequirement
+        : gameRequirementOverride;
+    setProfile(effectiveProfile);
+    setBudgetDraft(String(effectiveProfile.budget));
+    recommendationStopStream.current?.();
+    recommendationRequestId.current += 1;
+    setRecommendation(null);
+    setRecommendationPlanId(null);
+    setRecommendationError("");
     setIsGenerating(true);
     setJobProgress(12);
     setJobMessage("读取需求");
+    setGenerationFeedback("");
+    let onlineJobStarted = false;
+
+    const completeOfflineGeneration = async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 650));
+      setJobProgress(100);
+      setJobMessage("已完成");
+      const nextPlans = demoPlans(effectiveProfile);
+      setPlans(nextPlans);
+      setActivePlanId("demo-balanced");
+      const nextActivePlan =
+        nextPlans.find((plan) => plan.id === "demo-balanced") ?? nextPlans[1];
+      if (nextActivePlan)
+        void requestRecommendationForPlan(
+          nextActivePlan,
+          effectiveProfile,
+          targetGame,
+        );
+      setNotice("三套方案已生成（本地演示）");
+      setGenerationFeedback("三套方案已生成（本地演示），已更新到方案工作台");
+      revealGeneratedPlans();
+    };
+
     try {
-      if (!demoMode && conversation) {
-        await api.updateProfile(conversation.id, profile);
-        const job = await api.generate(conversation.id);
+      if (!forceLocal && !demoMode && targetConversation) {
+        const updatedConversation = await api.updateProfile(
+          targetConversation.id,
+          effectiveProfile,
+        );
+        setConversation(updatedConversation);
+        const job = await api.generate(updatedConversation.id);
+        onlineJobStarted = true;
         stopStream.current = streamJob(
           job.id,
           (event) => {
@@ -1257,12 +1628,19 @@ export default function App() {
           if (current.status === "completed") {
             const nextPlans =
               current.result?.plans ??
-              (await api.getPlans(conversation.id)).plans;
+              (await api.getPlans(updatedConversation.id)).plans;
             setPlans(nextPlans);
-            setActivePlanId(
-              nextPlans[1]?.id ?? nextPlans[0]?.id ?? activePlanId,
-            );
+            const nextActivePlan = nextPlans[1] ?? nextPlans[0];
+            setActivePlanId(nextActivePlan?.id ?? activePlanId);
+            if (nextActivePlan)
+              void requestRecommendationForPlan(
+                nextActivePlan,
+                effectiveProfile,
+                targetGame,
+              );
             setNotice("三套方案已生成");
+            setGenerationFeedback("三套方案已生成，已更新到方案工作台");
+            revealGeneratedPlans();
             return;
           }
           if (["dead_letter", "cancelled"].includes(current.status))
@@ -1271,18 +1649,46 @@ export default function App() {
         }
         throw new Error("任务等待超时，请确认 Worker 已启动");
       }
-      await new Promise((resolve) => window.setTimeout(resolve, 650));
-      setJobProgress(100);
-      setJobMessage("已完成");
-      setPlans(demoPlans(profile));
-      setActivePlanId("demo-balanced");
-      setNotice("三套方案已生成（本地演示）");
+      await completeOfflineGeneration();
     } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "生成失败，请稍后重试",
-      );
+      if (profileOverride && !forceLocal && !onlineJobStarted) {
+        setDemoMode(true);
+        setNotice("在线服务暂不可用，已切换本地可核对方案");
+        setGenerationFeedback("在线服务暂不可用，已使用本地可核对方案");
+        await completeOfflineGeneration();
+      } else {
+        const message = error instanceof Error ? error.message : "生成失败，请稍后重试";
+        setNotice(message);
+        setGenerationFeedback(message);
+        setJobMessage("生成失败");
+      }
     } finally {
       setIsGenerating(false);
+    }
+  }
+
+  async function loadPickerOffers(part: Part) {
+    const requestId = ++pickerOfferRequest.current;
+    setPickerOffers([]);
+    setPickerOffersBusy(true);
+    try {
+      const detail = await api.getProduct(part.id);
+      if (
+        requestId === pickerOfferRequest.current &&
+        activePickerSlot.current === part.category
+      ) {
+        setPickerOffers(detail.offers);
+      }
+    } catch {
+      if (
+        requestId === pickerOfferRequest.current &&
+        activePickerSlot.current === part.category
+      ) {
+        setPickerOffers(localProductDetail(part).offers);
+        setNotice("平台报价接口暂不可用，已保留京东与拼多多搜索入口；价格待联网");
+      }
+    } finally {
+      if (requestId === pickerOfferRequest.current) setPickerOffersBusy(false);
     }
   }
 
@@ -1291,8 +1697,14 @@ export default function App() {
     initialPartId?: string,
     initialPartName?: string,
   ) {
+    activePickerSlot.current = slot;
     setPickerSlot(slot);
     setPickerInitialPartId(initialPartId);
+    setPickerSync(null);
+    setPickerSyncProgress(0);
+    pickerOfferRequest.current += 1;
+    setPickerOffers([]);
+    setPickerOffersBusy(false);
     const localItems = LOCAL_CATALOG.filter((part) => part.category === slot);
     setPickerItems(localItems);
     const localMatch = localItems.find(
@@ -1301,9 +1713,12 @@ export default function App() {
         (initialPartName && part.name === initialPartName),
     );
     if (localMatch) setPickerInitialPartId(localMatch.id);
+    const localSelection = localMatch ?? localItems[0];
+    if (localSelection) void loadPickerOffers(localSelection);
     setPickerBusy(true);
     try {
       const catalog = await api.getCatalog(slot);
+      setPickerSync(catalog.sync);
       if (catalog.items.length) {
         setPickerItems(catalog.items);
         const match = catalog.items.find(
@@ -1311,12 +1726,89 @@ export default function App() {
             part.id === initialPartId ||
             (initialPartName && part.name === initialPartName),
         );
-        setPickerInitialPartId(match?.id ?? catalog.items[0].id);
+        const selectedPart = match ?? catalog.items[0];
+        setPickerInitialPartId(selectedPart.id);
+        void loadPickerOffers(selectedPart);
+      }
+      if (
+        catalog.sync.enabled &&
+        catalog.sync.stale &&
+        !["queued", "running"].includes(catalog.sync.status)
+      ) {
+        void refreshPickerCatalog(slot, true);
       }
     } catch {
       setNotice("配件接口未连接，已显示本地参考数据");
     } finally {
       setPickerBusy(false);
+    }
+  }
+
+  async function refreshPickerCatalog(
+    slot: PartCategory,
+    automatic = false,
+  ) {
+    catalogStopStream.current?.();
+    setPickerSyncProgress(0);
+    setPickerSync((current) => ({
+      enabled: true,
+      status: "queued",
+      provider: current?.provider ?? "ZOL 公开产品目录",
+      item_count: current?.item_count ?? 0,
+      message: automatic ? "正在后台补充具体厂商型号" : "目录更新已进入后台队列",
+      updated_at: current?.updated_at,
+      stale: true,
+      source_url: current?.source_url,
+    }));
+    try {
+      const job = await api.refreshCatalog(slot);
+      catalogStopStream.current = streamJob(
+        job.id,
+        (event) => {
+          if (activePickerSlot.current !== slot) return;
+          setPickerSyncProgress(event.progress);
+          setPickerSync((current) =>
+            current
+              ? {
+                  ...current,
+                  status: event.status,
+                  message: event.message,
+                }
+              : current,
+          );
+        },
+        () => {
+          void api
+            .getCatalog(slot)
+            .then((catalog) => {
+              if (activePickerSlot.current !== slot) return;
+              setPickerItems(catalog.items);
+              setPickerSync(catalog.sync);
+              setPickerSyncProgress(100);
+              if (catalog.sync.status === "completed") {
+                setNotice(`已补充 ${catalog.sync.item_count} 个公开厂商型号`);
+              }
+            })
+            .catch(() => {
+              if (activePickerSlot.current === slot) {
+                setNotice("目录更新状态读取失败，当前候选仍可继续使用");
+              }
+            });
+        },
+      );
+    } catch (error) {
+      setPickerSync((current) =>
+        current
+          ? {
+              ...current,
+              status: "unavailable",
+              message: "更新暂不可用，继续展示本地与缓存候选",
+            }
+          : current,
+      );
+      if (!automatic) {
+        setNotice(error instanceof Error ? error.message : "目录更新失败");
+      }
     }
   }
 
@@ -1328,10 +1820,10 @@ export default function App() {
     setPickerBusy(true);
     try {
       setProductDetail(await api.getProduct(part.id));
-      setNotice("已打开商品详情；平台价格会显示实时或示例状态");
+      setNotice("已打开商品详情；平台金额会区分实时、公开参考与待联网状态");
     } catch {
       setProductDetail(localProductDetail(part));
-      setNotice("商品详情接口未连接，已显示离线参数与示例报价");
+      setNotice("商品详情接口未连接，已显示离线参数与平台搜索入口");
     } finally {
       setPickerBusy(false);
     }
@@ -1340,6 +1832,11 @@ export default function App() {
   async function handleUsePart(part: Part) {
     if (!pickerSlot || !activePlan) return;
     setPickerBusy(true);
+    recommendationStopStream.current?.();
+    recommendationRequestId.current += 1;
+    setRecommendation(null);
+    setRecommendationPlanId(null);
+    setRecommendationError("");
     try {
       const currentItem = activePlan.items.find(
         (item) => item.slot === pickerSlot,
@@ -1384,6 +1881,10 @@ export default function App() {
         );
       }
       setPickerSlot(null);
+      activePickerSlot.current = null;
+      pickerOfferRequest.current += 1;
+      setPickerOffers([]);
+      setPickerOffersBusy(false);
       setProductDetail(null);
     } catch {
       setNotice("选入失败，请确认方案已生成且配件仍可用");
@@ -1393,6 +1894,11 @@ export default function App() {
   }
 
   async function handleLock(item: BuildItem) {
+    recommendationStopStream.current?.();
+    recommendationRequestId.current += 1;
+    setRecommendation(null);
+    setRecommendationPlanId(null);
+    setRecommendationError("");
     try {
       if (!demoMode && activePlan && !activePlan.id.startsWith("demo-"))
         await api.replaceItem(
@@ -1422,7 +1928,7 @@ export default function App() {
 
   async function handleExport() {
     if (demoMode || !activePlan || activePlan.id.startsWith("demo-")) {
-      setNotice("当前是演示预览，请先点击“生成我的方案”再导出 Excel");
+      setNotice("当前是演示预览，请先提交需求或点击“重新生成并核对”再导出 Excel");
       return;
     }
     try {
@@ -1473,6 +1979,18 @@ export default function App() {
     }
   }
 
+  const budgetDraftValidation = budgetValidationMessage(budgetDraft);
+  const budgetDraftHasError = !budgetDraftValidation.startsWith("支持");
+
+  function closePicker() {
+    catalogStopStream.current?.();
+    activePickerSlot.current = null;
+    pickerOfferRequest.current += 1;
+    setPickerOffers([]);
+    setPickerOffersBusy(false);
+    setPickerSlot(null);
+  }
+
   const renderPicker = () =>
     pickerSlot ? (
       <PartPicker
@@ -1480,9 +1998,17 @@ export default function App() {
         items={pickerItems}
         initialPartId={pickerInitialPartId}
         busy={pickerBusy}
-        onClose={() => setPickerSlot(null)}
+        sync={pickerSync}
+        syncProgress={pickerSyncProgress}
+        onClose={() => {
+          closePicker();
+        }}
         onUse={handleUsePart}
+        offers={pickerOffers}
+        offersBusy={pickerOffersBusy}
+        onSelect={loadPickerOffers}
         onViewDetails={(part) => void openProductDetail(part)}
+        onRefresh={() => refreshPickerCatalog(pickerSlot)}
       />
     ) : null;
 
@@ -1508,9 +2034,16 @@ export default function App() {
               onChange={(event) => setMessage(event.target.value)}
               placeholder="例如：8000 元，主要玩 2K 游戏，希望安静一些"
             />
-            <button className="gold-button" aria-label="发送需求" type="submit">
+            <button
+              className="gold-button"
+              aria-label="提交需求并生成可核对方案"
+              type="submit"
+              disabled={isGenerating || recommendationBusy}
+            >
               <Send size={18} />
-              告诉我
+              {isGenerating || recommendationBusy
+                ? "正在生成可核对方案"
+                : "告诉我并生成可核对方案"}
             </button>
           </div>
           <div className="quick-prompts">
@@ -1528,6 +2061,33 @@ export default function App() {
               安静与升级
             </button>
           </div>
+          <RequestInsightPanel
+            profile={profile}
+            gameRequirement={gameRequirement}
+            recommendation={
+              recommendationPlanId === activePlan?.id ? recommendation : null
+            }
+            plan={activePlan}
+            busy={recommendationBusy && recommendationPlanId === activePlan?.id}
+            planBusy={isGenerating}
+            progress={
+              isGenerating
+                ? jobProgress
+                : recommendationPlanId === activePlan?.id
+                  ? recommendationProgress
+                  : 0
+            }
+            message={
+              isGenerating
+                ? jobMessage
+                : recommendationPlanId === activePlan?.id
+                  ? recommendationMessage
+                  : ""
+            }
+            error={recommendationPlanId === activePlan?.id ? recommendationError : ""}
+            onGenerate={() => void handleGenerate()}
+            onViewResult={revealGeneratedPlans}
+          />
         </form>
       </section>
       <main className="builder-grid">
@@ -1542,28 +2102,82 @@ export default function App() {
           <p className="section-note">
             细节可以边聊边调整，生成前会再做一次硬件复核。
           </p>
-          <form className="needs-form">
-            <label>
-              预算范围
-              <span className="field-value">
-                ¥{formatMoney(profile.budget)}
+          {gameRequirement && (
+            <div className="recognized-game" role="status" aria-live="polite">
+              <Gamepad2 size={16} aria-hidden="true" />
+              <span>
+                <span className="recognized-game-label">
+                  已识别游戏：<strong>{gameRequirement.name}</strong>
+                </span>
+                <small>最低/推荐配置已载入</small>
               </span>
+              <button
+                type="button"
+                onClick={() => setView("games")}
+                aria-label={`查看${gameRequirement.name}配置`}
+              >
+                查看配置
+                <ChevronRight size={14} aria-hidden="true" />
+              </button>
+            </div>
+          )}
+          <form
+            className="needs-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleGenerate();
+            }}
+          >
+            <div className="budget-field">
+              <div className="budget-label-row">
+                <span>预算范围</span>
+                <span className="field-value">
+                  ¥{formatMoney(profile.budget)}
+                </span>
+              </div>
               <input
                 aria-label="预算"
                 type="range"
-                min="2500"
-                max="20000"
-                step="500"
-                value={profile.budget}
+                min={MIN_BUDGET}
+                max={SLIDER_MAX_BUDGET}
+                step="100"
+                value={Math.min(profile.budget, SLIDER_MAX_BUDGET)}
                 onChange={(event) =>
-                  updateProfile("budget", Number(event.target.value))
+                  updateProfile("budget", normalizeBudget(Number(event.target.value)))
                 }
               />
+              <label className="budget-custom" htmlFor="budget-custom-input">
+                <span>自定义预算</span>
+                <span className="budget-number-wrap">
+                  <span aria-hidden="true">¥</span>
+                  <input
+                    id="budget-custom-input"
+                    aria-label="自定义预算"
+                    aria-describedby="budget-custom-hint"
+                    aria-invalid={budgetDraftHasError}
+                    inputMode="numeric"
+                    min={MIN_BUDGET}
+                    max={MAX_CUSTOM_BUDGET}
+                    step="1"
+                    type="number"
+                    value={budgetDraft}
+                    onChange={(event) => setBudgetDraft(event.target.value)}
+                    onBlur={commitBudgetDraft}
+                  />
+                </span>
+              </label>
+              <span
+                className={`budget-custom-hint ${budgetDraftHasError ? "has-error" : ""}`}
+                id="budget-custom-hint"
+                role="status"
+              >
+                {budgetDraftValidation}
+              </span>
               <span className="range-caption">
                 <span>¥2,500</span>
                 <span>¥20,000+</span>
               </span>
-            </label>
+            </div>
             <label>
               主要用途
               <select
@@ -1717,7 +2331,7 @@ export default function App() {
             <button
               className="gold-button full-width"
               type="button"
-              onClick={handleGenerate}
+              onClick={() => void handleGenerate()}
               disabled={isGenerating}
             >
               {isGenerating ? (
@@ -1728,7 +2342,7 @@ export default function App() {
               ) : (
                 <>
                   <Sparkles size={17} />
-                  生成我的方案
+                   重新生成并核对
                   <ChevronRight size={17} />
                 </>
               )}
@@ -1753,7 +2367,7 @@ export default function App() {
             </div>
           </div>
         </aside>
-        <section className="plans-panel glass-card">
+        <section className="plans-panel glass-card" id="plans-workbench">
           <div className="section-head plan-head">
             <div>
               <span className="eyebrow">02 / 方案工作台</span>
@@ -1780,6 +2394,26 @@ export default function App() {
                 <span style={{ width: `${jobProgress}%` }} />
               </div>
               <p>{jobMessage}，正在检查需求与兼容性…</p>
+            </div>
+          )}
+          {!isGenerating && generationFeedback && (
+            <div
+              className={`generation-feedback ${
+                generationFeedback.includes("失败") ||
+                generationFeedback.includes("超时")
+                  ? "has-error"
+                  : ""
+              }`}
+              role="status"
+              aria-live="polite"
+            >
+              {generationFeedback.includes("失败") ||
+              generationFeedback.includes("超时") ? (
+                <AlertTriangle size={16} aria-hidden="true" />
+              ) : (
+                <CheckCircle2 size={16} aria-hidden="true" />
+              )}
+              <span>{generationFeedback}</span>
             </div>
           )}
           <div className="plan-tabs" role="tablist" aria-label="方案类型">
@@ -1841,6 +2475,15 @@ export default function App() {
                   </strong>
                 </div>
               </div>
+              {budgetIssue && (
+                <div className="budget-alert" role="status" aria-live="polite">
+                  <CircleDollarSign size={18} aria-hidden="true" />
+                  <div>
+                    <strong>{budgetIssue.title}</strong>
+                    <p>{budgetIssue.detail}</p>
+                  </div>
+                </div>
+              )}
               <div
                 className={`compatibility-banner ${errors.length ? "has-error" : warnings.length ? "has-warning" : "is-ok"}`}
               >
@@ -1863,12 +2506,27 @@ export default function App() {
                   </strong>
                   <p>
                     {errors[0]?.detail ??
+                      budgetIssue?.detail ??
                       warnings[0]?.detail ??
                       "插槽、尺寸、内存代际和电源余量均已检查。"}
                   </p>
                 </div>
               </div>
               <CompatibilityChecklist issues={activePlan.compatibility} />
+              <RecommendationCard
+                recommendation={
+                  recommendationPlanId === activePlan.id ? recommendation : null
+                }
+                plan={activePlan}
+                profile={profile}
+                loading={recommendationBusy && recommendationPlanId === activePlan.id}
+                error={recommendationPlanId === activePlan.id ? recommendationError : ""}
+                progress={recommendationProgress}
+                message={recommendationMessage}
+                onGenerate={() => void requestRecommendationForPlan(activePlan, profile)}
+                onRegenerate={() => void requestRecommendationForPlan(activePlan, profile)}
+                onOpenGame={() => setView("games")}
+              />
               <div className="parts-list">
                 {activePlan.items.map((item) => (
                   <div className="part-row" key={item.slot}>
@@ -2223,6 +2881,7 @@ export default function App() {
           <button
             className={view === "builder" ? "active" : ""}
             onClick={() => {
+              closePicker();
               setProductDetail(null);
               setView("builder");
             }}
@@ -2233,6 +2892,7 @@ export default function App() {
           <button
             className={view === "ladder" ? "active" : ""}
             onClick={() => {
+              closePicker();
               setProductDetail(null);
               setView("ladder");
             }}
@@ -2243,6 +2903,7 @@ export default function App() {
           <button
             className={view === "games" ? "active" : ""}
             onClick={() => {
+              closePicker();
               setProductDetail(null);
               setView("games");
             }}
