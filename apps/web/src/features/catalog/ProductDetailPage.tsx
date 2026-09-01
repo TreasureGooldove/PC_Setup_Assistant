@@ -2,19 +2,15 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  Clock3,
   ExternalLink,
   RefreshCw,
   ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 import type { Part, ProductDetail } from "../../types";
-import {
-  formatMoney,
-  formatSpec,
-  SLOT_LABELS,
-  SPEC_LABELS,
-} from "./partFormat";
+import { DetailedSpecTable } from "./DetailedSpecTable";
+import { OfferComparison } from "./OfferComparison";
+import { formatMoney, SLOT_LABELS } from "./partFormat";
 
 interface ProductDetailPageProps {
   detail: ProductDetail;
@@ -26,6 +22,7 @@ interface ProductDetailPageProps {
 function statusLabel(status: string) {
   if (status === "live") return "实时读取";
   if (status === "reference") return "结构化参考";
+  if (status === "public_reference") return "公开页参考";
   if (status === "fixture") return "示例数据";
   if (status === "disabled") return "未启用";
   if (status === "unconfigured") return "未配置";
@@ -40,6 +37,9 @@ export function ProductDetailPage({
   onUse,
 }: ProductDetailPageProps) {
   const { part } = detail;
+  const primaryPriceLabel = part.source.includes("ZOL公开")
+    ? "ZOL公开参考价"
+    : "目录参考价";
   return (
     <main
       className="product-page page-view"
@@ -70,7 +70,7 @@ export function ProductDetailPage({
           </div>
         </div>
         <div className="product-primary-price">
-          <span>目录参考价</span>
+          <span>{primaryPriceLabel}</span>
           <strong>¥{formatMoney(part.price)}</strong>
           <small>实际成交价以平台页面为准</small>
         </div>
@@ -78,68 +78,7 @@ export function ProductDetailPage({
 
       <div className="product-layout">
         <div className="product-main-column">
-          <section className="product-section glass-card">
-            <div className="product-section-head">
-              <div>
-                <span className="eyebrow">平台比价</span>
-                <h3>京东与拼多多</h3>
-              </div>
-              <span className="product-section-note">
-                <Clock3 size={15} />
-                报价带采集状态
-              </span>
-            </div>
-            <div className="offer-grid">
-              {detail.offers.map((offer) => (
-                <article
-                  className={`offer-card platform-${offer.platform}`}
-                  key={`${offer.platform}-${offer.part_id}`}
-                >
-                  <div className="offer-head">
-                    <strong>
-                      {offer.platform === "jd"
-                        ? "京东"
-                        : offer.platform === "pdd"
-                          ? "拼多多"
-                          : offer.platform}
-                    </strong>
-                    <span className={offer.is_live ? "is-live" : "is-fixture"}>
-                      {offer.is_live ? "实时" : "示例"}
-                    </span>
-                  </div>
-                  <div className="offer-price">
-                    <small>参考到手</small>
-                    <strong>
-                      ¥{formatMoney(offer.landed_price ?? offer.price)}
-                    </strong>
-                    {offer.list_price ? (
-                      <del>¥{formatMoney(offer.list_price)}</del>
-                    ) : null}
-                  </div>
-                  <p>{offer.seller || offer.source}</p>
-                  <div className="offer-meta">
-                    <span>{offer.status}</span>
-                    <span>
-                      {new Date(offer.captured_at).toLocaleString("zh-CN", {
-                        hour12: false,
-                      })}
-                    </span>
-                  </div>
-                  {offer.url ? (
-                    <a
-                      className="offer-link"
-                      href={offer.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      前往平台核价
-                      <ExternalLink size={14} />
-                    </a>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          </section>
+          <OfferComparison offers={detail.offers} />
 
           <section className="product-section glass-card">
             <div className="product-section-head">
@@ -152,14 +91,15 @@ export function ProductDetailPage({
                 规则引擎会复核
               </span>
             </div>
-            <div className="product-spec-grid">
-              {Object.entries(part.specs).map(([key, value]) => (
-                <div key={key}>
-                  <span>{SPEC_LABELS[key] ?? key.replace(/^jd_/, "")}</span>
-                  <strong>{formatSpec(key, value)}</strong>
-                </div>
-              ))}
-            </div>
+            <DetailedSpecTable
+              category={part.category}
+              specs={{
+                brand_name: part.brand,
+                model: part.name,
+                ...(part.category === "gpu" ? { power_w: part.power_w } : {}),
+                ...part.specs,
+              }}
+            />
           </section>
 
           <section className="product-section glass-card">

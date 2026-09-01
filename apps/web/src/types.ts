@@ -82,9 +82,9 @@ export interface CatalogResponse {
 
 export interface Offer {
   part_id: string;
-  price: number;
+  price?: number | null;
   source: string;
-  captured_at: string;
+  captured_at?: string | null;
   platform: "jd" | "pdd" | "taobao" | string;
   sku?: string | null;
   list_price?: number | null;
@@ -111,6 +111,7 @@ export interface DataSourceStatus {
   status:
     | "live"
     | "reference"
+    | "public_reference"
     | "fixture"
     | "disabled"
     | "unconfigured"
@@ -157,6 +158,75 @@ export interface BuildPlan {
   created_at: string;
 }
 
+export interface RecommendationDecision {
+  slot: PartCategory;
+  part_id: string;
+  part_name: string;
+  reason: string;
+  evidence_ids: string[];
+}
+
+export interface RecommendationCompatibilitySummary {
+  status: "ok" | "warning" | "error";
+  passed_checks: number;
+  warnings: string[];
+  errors: string[];
+}
+
+export interface RecommendationPriceSummary {
+  budget: number;
+  total_price: number;
+  difference: number;
+  status: "within_budget" | "over_budget" | "reference_only";
+  source_notes: string[];
+}
+
+export interface RecommendationEvidence {
+  id: string;
+  kind: string;
+  label: string;
+  source: string;
+  summary: string;
+  url?: string | null;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface AgentStage {
+  id: string;
+  label: string;
+  status: "pending" | "running" | "completed" | "waiting" | "failed";
+  summary: string;
+  sources: string[];
+}
+
+export interface AgentTrace {
+  stages: AgentStage[];
+  result_summary: string;
+  provider: string;
+  mode: "offline" | "live" | "fallback";
+  generated_at: string;
+}
+
+export interface Recommendation {
+  id: string;
+  plan_id: string;
+  plan_fingerprint: string;
+  headline: string;
+  summary: string;
+  profile_summary: string;
+  decisions: RecommendationDecision[];
+  compatibility_summary: RecommendationCompatibilitySummary;
+  price_summary: RecommendationPriceSummary;
+  evidence: RecommendationEvidence[];
+  uncertainties: string[];
+  next_actions: string[];
+  agent_trace: AgentTrace;
+  provider: string;
+  source_status: string;
+  generated_at: string;
+  stale: boolean;
+}
+
 export interface ConversationResponse {
   id: string;
   profile: NeedProfile;
@@ -180,6 +250,8 @@ export interface Job {
     plan?: BuildPlan;
     category?: PartCategory;
     item_count?: number;
+    recommendation_id?: string;
+    recommendation?: Recommendation;
   } | null;
   error?: string | null;
 }
@@ -221,6 +293,7 @@ export interface GameRequirement {
   app_id: string;
   name: string;
   source: string;
+  source_kind?: "steam" | "official" | "fixture" | "external" | string;
   minimum: SystemRequirement;
   recommended: SystemRequirement;
   notes: string;

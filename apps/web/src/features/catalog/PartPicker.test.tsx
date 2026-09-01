@@ -1,6 +1,13 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CatalogSyncStatus, Part } from "../../types";
+import type { CatalogSyncStatus, Offer, Part } from "../../types";
 import { PartPicker } from "./PartPicker";
 
 const items: Part[] = [
@@ -63,6 +70,35 @@ const sync: CatalogSyncStatus = {
   stale: false,
 };
 
+const offers: Offer[] = [
+  {
+    part_id: "asus-5070",
+    platform: "jd",
+    price: 7599,
+    list_price: 7699,
+    landed_price: 7499,
+    source: "京东示例报价",
+    seller: "华硕京东自营店",
+    status: "示例报价（未联网）",
+    captured_at: "2026-08-31T10:00:00+08:00",
+    url: "https://search.jd.com/Search?keyword=5070",
+    is_live: false,
+  },
+  {
+    part_id: "asus-5070",
+    platform: "pdd",
+    price: 7399,
+    list_price: 7699,
+    landed_price: 7299,
+    source: "拼多多示例报价",
+    seller: "华硕授权店铺",
+    status: "示例报价（未联网）",
+    captured_at: "2026-08-31T10:00:00+08:00",
+    url: "https://mobile.yangkeduo.com/search_result.html?search_key=5070",
+    is_live: false,
+  },
+];
+
 afterEach(cleanup);
 
 describe("PartPicker", () => {
@@ -109,5 +145,55 @@ describe("PartPicker", () => {
     expect(screen.getAllByText(/已更新 3 个公开厂商型号/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "更新候选" }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows platform offers and all available configuration fields", () => {
+    const onSelect = vi.fn();
+    render(
+      <PartPicker
+        slot="gpu"
+        items={items}
+        offers={offers}
+        onSelect={onSelect}
+        onClose={vi.fn()}
+        onUse={vi.fn()}
+        onViewDetails={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("京东与拼多多价格")).toBeTruthy();
+    expect(screen.getByText("华硕京东自营店")).toBeTruthy();
+    expect(screen.getByText("华硕授权店铺")).toBeTruthy();
+    expect(screen.getAllByText("示例报价（未联网）")).toHaveLength(2);
+    expect(screen.getByText("完整配置参数")).toBeTruthy();
+    expect(screen.getByText("GDDR7")).toBeTruthy();
+    expect(screen.getByText("192bit")).toBeTruthy();
+
+    const second = screen.getByText("TUF RTX 5060 Ti O16G GAMING");
+    fireEvent.click(second.closest("button")!);
+    expect(onSelect).toHaveBeenCalledWith(items[1]);
+    expect(screen.getByText("16GB")).toBeTruthy();
+  });
+
+  it("refreshes the selected item when filters move the default candidate", async () => {
+    const onSelect = vi.fn();
+    render(
+      <PartPicker
+        slot="gpu"
+        items={items}
+        onSelect={onSelect}
+        onClose={vi.fn()}
+        onUse={vi.fn()}
+        onViewDetails={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("搜索配件"), {
+      target: { value: "5060" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith(items[1]));
+    expect(screen.getByRole("heading", { name: items[1].name })).toBeTruthy();
   });
 });

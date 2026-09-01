@@ -12,12 +12,14 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import type { CatalogSyncStatus, Part, PartCategory } from "../../types";
+import type { CatalogSyncStatus, Offer, Part, PartCategory } from "../../types";
+import { DetailedSpecTable } from "./DetailedSpecTable";
+import { OfferComparison } from "./OfferComparison";
 import {
   formatMoney,
   formatSpec,
   SLOT_LABELS,
-  SPEC_LABELS,
+  specLabel,
 } from "./partFormat";
 
 interface PartPickerProps {
@@ -27,8 +29,11 @@ interface PartPickerProps {
   busy?: boolean;
   sync?: CatalogSyncStatus | null;
   syncProgress?: number;
+  offers?: Offer[];
+  offersBusy?: boolean;
   onClose: () => void;
   onUse: (part: Part) => void | Promise<void>;
+  onSelect?: (part: Part) => void | Promise<void>;
   onViewDetails: (part: Part) => void;
   onRefresh?: () => void | Promise<void>;
 }
@@ -84,7 +89,7 @@ function itemSpecSummary(slot: PartCategory, item: Part): string {
   const values = preferred[slot]
     .filter((key) => item.specs[key] !== undefined && item.specs[key] !== null)
     .slice(0, 3)
-    .map((key) => `${SPEC_LABELS[key] ?? key} ${formatSpec(key, item.specs[key])}`);
+    .map((key) => `${specLabel(key)} ${formatSpec(key, item.specs[key])}`);
   return values.join(" · ") || item.summary || `${item.brand} 产品候选`;
 }
 
@@ -95,8 +100,11 @@ export function PartPicker({
   busy = false,
   sync,
   syncProgress = 0,
+  offers = [],
+  offersBusy = false,
   onClose,
   onUse,
+  onSelect,
   onViewDetails,
   onRefresh,
 }: PartPickerProps) {
@@ -180,6 +188,12 @@ export function PartPicker({
   const selected =
     filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? null;
   const syncing = sync?.status === "queued" || sync?.status === "running";
+
+  useEffect(() => {
+    if (!selected || selected.id === selectedId) return;
+    setSelectedId(selected.id);
+    void onSelect?.(selected);
+  }, [onSelect, selected, selectedId]);
 
   function applySearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -390,7 +404,10 @@ export function PartPicker({
                 type="button"
                 className={`picker-result ${selected?.id === item.id ? "selected" : ""}`}
                 aria-pressed={selected?.id === item.id}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  setSelectedId(item.id);
+                  void onSelect?.(item);
+                }}
               >
                 <span className="picker-product-image" aria-hidden="true">
                   <ImageIcon size={22} />
@@ -469,17 +486,23 @@ export function PartPicker({
                     </strong>
                   </div>
                 </div>
-                <div className="spec-chip-grid">
-                  {Object.entries(selected.specs)
-                    .filter(([key]) => key !== "catalog_kind")
-                    .slice(0, 14)
-                    .map(([key, value]) => (
-                      <div key={key}>
-                        <span>{SPEC_LABELS[key] ?? key}</span>
-                        <strong>{formatSpec(key, value)}</strong>
-                      </div>
-                    ))}
-                </div>
+                <DetailedSpecTable
+                  category={selected.category}
+                  specs={{
+                    brand_name: selected.brand,
+                    model: selected.name,
+                    ...(selected.category === "gpu"
+                      ? { power_w: selected.power_w }
+                      : {}),
+                    ...selected.specs,
+                  }}
+                  compact
+                />
+                <OfferComparison
+                  offers={offers}
+                  loading={offersBusy}
+                  compact
+                />
                 <section className="ai-review" aria-label="辅助点评">
                   <div className="review-title">
                     <BarChart3 size={17} aria-hidden="true" />

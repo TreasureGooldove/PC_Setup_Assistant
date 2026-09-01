@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="智能装机搭子">
+  <rect width="64" height="64" rx="16" fill="#2563eb"/>
+  <rect x="17" y="17" width="30" height="30" rx="6" fill="none" stroke="#fff" stroke-width="4"/>
+  <path d="M25 11v7M39 11v7M25 46v7M39 46v7M11 25h7M11 39h7M46 25h7M46 39h7" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <rect x="27" y="27" width="10" height="10" rx="2" fill="#fff"/>
+</svg>
