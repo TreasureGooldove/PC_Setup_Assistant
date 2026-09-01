@@ -1,7 +1,7 @@
 ---
 title: 全品类候选与目录同步 Team Context
 type: team-context
-status: github-flow
+status: done
 git_branch: feat/15-catalog-sync-filters
 base_branch: main
 issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/15
@@ -14,7 +14,7 @@ pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
 
 - Spec：`20260831-catalog-sync-filters`
 - Issue：https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/15
-- 当前阶段：审查已确认，执行提交、CI、PR 与合并
+- 当前阶段：GitHub Flow 已完成，main 冒烟验证通过
 
 ## Task Progress
 
@@ -37,7 +37,7 @@ pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
 | spec-updater | done | `updater/update-006.md` 与 `updater/update-006-summary.md` | 2026-09-01 | spec-updater |
 | spec-updater | done | `updater/update-007.md` 与 `updater/update-007-summary.md` | 2026-09-01 | spec-updater |
 | spec-reviewer | confirmed | `reviewer/update-007-review.md` 用户已确认 | 2026-09-01 | user |
-| git-work | in_progress | PR #16：等待 CI、合并与分支清理 | 2026-09-01 | git-work |
+| git-work | done | PR #16 已通过 CI、squash 合并，远程功能分支已清理 | 2026-09-01 | git-work |
 
 ## Shared Decisions
 

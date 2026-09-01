@@ -1,6 +1,6 @@
 # 智能装机搭子 MVP
 
-状态：目录同步与结构化建议增强已完成本地验收并通过用户审查确认，正在执行 GitHub Flow（Issue #15）。
+状态：目录同步与结构化建议增强已完成用户审查、CI、PR 合并和 main 冒烟验证（Issue #15）。
 
 ## 目标
 
@@ -82,7 +82,8 @@
 - `scope`: 各配件分类至少 12 个稳定候选；品牌、类型/系列、价格区间筛选；固定白名单公开目录的队列化同步、SQLite 缓存和失败回退。
 - `data_boundary`: Fixture 始终作为稳定回退；公开目录同步默认开启，只读取固定 ZOL 产品列表页，不携带登录态、不跟随重定向、不绕过验证码或访问控制。
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
-- `status`: 已提交并创建 PR #16，等待 GitHub Actions 完成后合并。
+- `merge_commit`: `f6b4559c51e3228869c6badb55a82a2f13da5ee8`
+- `status`: PR #16 已通过 GitHub Actions 并 squash 合并；远程功能分支已删除，main 冒烟验证通过。
 
 ## 完整硬件参数详情增强
 
@@ -135,4 +136,5 @@
 - `scope`: 合并顶部“告诉我”和生成入口；用户提交非空需求后自动传递最新预算、用途、偏好和游戏识别结果，生成三套方案、结构化建议并定位到方案工作台；参数调整后保留“重新生成并核对”。
 - `reference_boundary`: 仅借鉴公开装机问答产品的“提问—答复—依据”逻辑，不复制品牌、素材、文案或接口。
 - `pr_url`: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
-- `status`: 本地实现、前端质量门禁和真实浏览器主流程回归完成；自动生成流程使用本次提交的局部最新状态，筛选切换会同步刷新报价；用户已确认审查，PR #16 已创建，等待 CI 与合并。
+- `merge_commit`: `f6b4559c51e3228869c6badb55a82a2f13da5ee8`
+- `status`: 本地实现、前端质量门禁、真实浏览器主流程回归、GitHub Actions 和 PR #16 squash 合并均完成；自动生成流程使用本次提交的局部最新状态，筛选切换会同步刷新报价。
