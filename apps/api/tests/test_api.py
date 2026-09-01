@@ -24,6 +24,33 @@ def test_http_conversation_generation_flow():
         assert len(finished["result"]["plans"]) == 3
 
 
+def test_http_generation_uses_exact_custom_budget():
+    with TestClient(app) as client:
+        conversation = client.post(
+            "/api/conversations", json={"profile": {"budget": 12000}}
+        ).json()
+        profile = {**conversation["profile"], "budget": 2500}
+        updated = client.patch(
+            f"/api/conversations/{conversation['id']}/profile",
+            json={"profile": profile},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["profile"]["budget"] == 2500
+
+        job = client.post(
+            f"/api/plans/generate?conversation_id={conversation['id']}",
+            headers={"Idempotency-Key": "test-exact-budget"},
+        ).json()
+        assert asyncio.run(process_one()) is True
+        finished = client.get(f"/api/jobs/{job['id']}").json()
+        assert finished["status"] == "completed"
+        assert [plan["budget"] for plan in finished["result"]["plans"]] == [2500] * 3
+        assert all(
+            any(issue["code"] == "BUDGET_OVER" for issue in plan["compatibility"])
+            for plan in finished["result"]["plans"]
+        )
+
+
 def test_ladder_and_game_requirement_routes():
     with TestClient(app) as client:
         ladder = client.get("/api/ladder", params={"category": "gpu"})

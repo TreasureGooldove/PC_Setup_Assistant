@@ -39,6 +39,17 @@ class PlanRecord(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
+class RecommendationRecord(Base):
+    __tablename__ = "recommendations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    plan_id: Mapped[str] = mapped_column(String(36), index=True)
+    plan_fingerprint: Mapped[str] = mapped_column(String(64), index=True)
+    recommendation_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class JobRecord(Base):
     __tablename__ = "jobs"
 

@@ -11,6 +11,7 @@ from app.exporter import export_plan
 from app.features.builds.service import get_plan, mark_refreshed, save_plans
 from app.features.catalog_sync.service import sync_catalog
 from app.features.conversations.service import get_conversation
+from app.features.recommendations.service import generate_recommendation
 from app.queue import JobQueue
 
 THREAD_POOL_SIZE = min(8, (os.cpu_count() or 1) + 2)
@@ -25,6 +26,25 @@ async def execute_job(queue: JobQueue, job_id: str, kind: str, payload: dict[str
         plans = save_plans(conversation.id, conversation.profile)
         queue.progress(job_id, 90, "完成兼容性检查")
         queue.complete(job_id, {"plans": [plan.model_dump(mode="json") for plan in plans]})
+        return
+    if kind == "generate_recommendation":
+        queue.progress(job_id, 25, "识别需求与游戏资料")
+        queue.progress(job_id, 45, "汇总官方与社区证据")
+        queue.progress(job_id, 60, "整理配件、价格与兼容性依据")
+        recommendation = await generate_recommendation(
+            payload["plan_id"],
+            payload.get("game_app_id"),
+            payload.get("community_query"),
+            bool(payload.get("include_community_evidence", True)),
+        )
+        queue.progress(job_id, 85, "校验结构化建议与来源等级")
+        queue.complete(
+            job_id,
+            {
+                "recommendation_id": recommendation.id,
+                "recommendation": recommendation.model_dump(mode="json"),
+            },
+        )
         return
     if kind == "refresh_offers":
         plan = mark_refreshed(payload["plan_id"])

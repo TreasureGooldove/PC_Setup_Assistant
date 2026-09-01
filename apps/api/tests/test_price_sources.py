@@ -39,6 +39,16 @@ def test_normalize_taobao_and_jd_price_fields():
     assert jd.sku == "456"
 
 
+def test_normalize_taobao_keeps_store_name():
+    offer = normalize_offer(
+        "cpu-1",
+        "taobao",
+        {"item_id": 123, "price": "1699", "store_name": "测试旗舰店"},
+    )
+    assert offer is not None
+    assert offer.seller == "测试旗舰店"
+
+
 def test_marketplace_credentials_are_all_or_nothing():
     env = {
         "JD_APP_KEY": "key",

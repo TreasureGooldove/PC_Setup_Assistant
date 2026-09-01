@@ -130,11 +130,40 @@ class FixtureGameProvider:
                 "联网版本启用后会优先读取 appdetails。"
             ),
         ),
+        "rsi:star-citizen": GameRequirement(
+            app_id="rsi:star-citizen",
+            name="Star Citizen（星际公民）",
+            source="RSI 官方 Game and Launcher Requirements",
+            source_kind="official",
+            minimum=SystemRequirement(
+                operating_system="Windows 10/11 64-bit",
+                processor="支持 AVX/AVX2/FMA3 的四核处理器（Intel i7 Haswell+ 或 AMD Excavator+）",
+                memory_gb=16,
+                graphics="支持 DirectX 11.1 且显存 4GB 以上",
+                directx="DirectX 11.1",
+                storage_gb=150,
+                additional_notes="需要 SSD；官方页面还提示应准备 NTFS 分区和系统页面文件。",
+            ),
+            recommended=SystemRequirement(
+                operating_system="Windows 10/11 64-bit",
+                processor="官方未提供统一的推荐 CPU 型号",
+                memory_gb=None,
+                graphics="官方未提供统一的推荐显卡型号",
+                directx="未提供",
+                storage_gb=150,
+                additional_notes="本页主要提供最低运行要求；更高分辨率和画质应结合实际版本与测试结果评估。",
+            ),
+            notes=(
+                "星际公民使用 RSI 官方配置入口，不伪造 Steam App ID。"
+                "Linux/macOS 不是官方支持平台，社区经验仅作低可信度补充。"
+            ),
+        ),
     }
 
     _aliases = {
         "236390": ["war thunder", "warthunder", "warthuder", "战争雷霆"],
         "730": ["cs2", "counter strike 2"],
+        "rsi:star-citizen": ["star citizen", "starcitizen", "星际公民", "sc"],
     }
 
     async def search(self, query: str) -> list[GameSearchResult]:
@@ -151,9 +180,7 @@ class FixtureGameProvider:
             candidates = [game.name, game.app_id, *self._aliases.get(game.app_id, [])]
             normalised = [_normalise_search_text(value) for value in candidates]
             if any(
-                needle in candidate
-                or candidate in needle
-                or SequenceMatcher(None, needle, candidate).ratio() >= 0.78
+                _matches_game_candidate(lowered, needle, candidate)
                 for candidate in normalised
             ):
                 matches.append(game)
@@ -213,6 +240,7 @@ class SteamStoreProvider:
             app_id=app_id,
             name=str(data.get("name", f"Steam 游戏 {app_id}")),
             source="Steam Store appdetails",
+            source_kind="steam",
             minimum=minimum,
             recommended=recommended,
             notes="字段由 Steam Store 页面信息标准化，缺失字段保留为未提供。",
@@ -273,3 +301,13 @@ def _parse_requirement_html(value: str) -> SystemRequirement:
 
 def _normalise_search_text(value: str) -> str:
     return re.sub(r"[^0-9a-z\u4e00-\u9fff]+", "", value.lower())
+
+
+def _matches_game_candidate(query: str, needle: str, candidate: str) -> bool:
+    if len(candidate) <= 2 and candidate.isascii():
+        return bool(re.search(rf"(?<![0-9a-z]){re.escape(candidate)}(?![0-9a-z])", query))
+    return (
+        needle in candidate
+        or candidate in needle
+        or SequenceMatcher(None, needle, candidate).ratio() >= 0.78
+    )
