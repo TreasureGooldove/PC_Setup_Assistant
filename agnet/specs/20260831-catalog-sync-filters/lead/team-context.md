@@ -5,6 +5,7 @@ status: github-flow
 git_branch: feat/15-catalog-sync-filters
 base_branch: main
 issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/15
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
 ---
 
 # Team Context
@@ -35,6 +36,8 @@ issue_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/issues/15
 | spec-reviewer | done | `reviewer/update-005-review.md` | 2026-08-31 | spec-reviewer |
 | spec-updater | done | `updater/update-006.md` 与 `updater/update-006-summary.md` | 2026-09-01 | spec-updater |
 | spec-updater | done | `updater/update-007.md` 与 `updater/update-007-summary.md` | 2026-09-01 | spec-updater |
+| spec-reviewer | confirmed | `reviewer/update-007-review.md` 用户已确认 | 2026-09-01 | user |
+| git-work | in_progress | PR #16：等待 CI、合并与分支清理 | 2026-09-01 | git-work |
 
 ## Shared Decisions
 

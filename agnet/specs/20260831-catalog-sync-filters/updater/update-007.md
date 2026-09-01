@@ -9,7 +9,7 @@ created: 2026-09-01
 plan: "[[../writer/plan|plan]]"
 git_branch: feat/15-catalog-sync-filters
 base_branch: main
-pr_url:
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
 tags:
   - spec
   - update

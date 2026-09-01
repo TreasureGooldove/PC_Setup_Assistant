@@ -9,7 +9,7 @@ plan: "[[../writer/plan|plan]]"
 update: "[[update-007|update-007]]"
 git_branch: feat/15-catalog-sync-filters
 base_branch: main
-pr_url:
+pr_url: https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16
 tags:
   - spec
   - update
@@ -67,11 +67,11 @@ agnet/specs/20260831-catalog-sync-filters/updater/update-007.md
 - 导出操作实际下载 `build-plan-*.xlsx`；浏览器控制台错误数为 0，增加本地 favicon 后不再请求缺失的 `/favicon.ico`。
 - 新增前端测试覆盖：过滤器改变默认候选时调用报价刷新回调；自动提交测试覆盖最新预算、游戏标识和 API 失败后的本地降级。
 - 语义秘密扫描未发现 API Key、`.env` 值、Cookie、Token 或 Authorization 常量；`git diff --check` 通过。
-- 未执行提交、推送、PR、合并或远端分支删除，等待 Spec 审查确认后再按用户授权进行 GitHub Flow 操作。
+- 已完成三组中文 Conventional Commit、推送当前功能分支并创建 PR #16；等待 CI 通过后执行合并和远端分支清理。
 
 ## 5. 后续事项
 
-- 本更新状态为 `ready-for-review`，需要先确认审查报告，再决定是否进入提交和 GitHub Flow 收尾。
+- 本更新已获用户确认，当前 PR 为 [#16](https://github.com/TreasureGooldove/PC_Setup_Assistant/pull/16)，待 CI 通过后完成 GitHub Flow 收尾。
 - 真实京东、拼多多或淘宝成交价仍需用户在本机配置对应授权连接器和商品映射；当前默认路径不会绕过登录、验证码或反爬。
 
 ## 6. 文档关联
